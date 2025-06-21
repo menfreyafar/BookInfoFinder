@@ -191,7 +191,7 @@ export default function BookForm({ book, onClose }: BookFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="category">Categoria</Label>
-              <Select value={form.watch("category") || ""} onValueChange={(value) => form.setValue("category", value)}>
+              <Select value={form.watch("category") || undefined} onValueChange={(value) => form.setValue("category", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
