@@ -90,7 +90,7 @@ export default function Catalog() {
   const displayBooks = searchQuery.length > 2 ? searchResults : books;
 
   const filteredBooks = displayBooks?.filter(book => {
-    if (selectedCategory && book.category !== selectedCategory) {
+    if (selectedCategory && selectedCategory !== "all" && book.category !== selectedCategory) {
       return false;
     }
     return true;
@@ -189,7 +189,7 @@ export default function Catalog() {
                   <SelectValue placeholder="Filtrar por categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as categorias</SelectItem>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
                   {categories.map(category => (
                     <SelectItem key={category} value={category}>
                       {category}

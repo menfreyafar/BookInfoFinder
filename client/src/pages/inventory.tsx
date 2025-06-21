@@ -171,7 +171,7 @@ export default function Inventory() {
       book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.isbn?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesStatus = !filterStatus || book.inventory?.status === filterStatus;
+    const matchesStatus = !filterStatus || filterStatus === "all" || book.inventory?.status === filterStatus;
     
     return matchesSearch && matchesStatus;
   });
@@ -310,7 +310,7 @@ export default function Inventory() {
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os status</SelectItem>
+              <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="available">Disponível</SelectItem>
               <SelectItem value="reserved">Reservado</SelectItem>
               <SelectItem value="sold">Vendido</SelectItem>
