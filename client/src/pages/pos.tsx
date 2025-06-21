@@ -57,8 +57,9 @@ export default function POS() {
     }).format(num);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR');
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleString('pt-BR');
   };
 
   const getPaymentMethodBadge = (method: string) => {
@@ -220,7 +221,7 @@ export default function POS() {
                             {getPaymentMethodBadge(sale.paymentMethod)}
                           </div>
                           <p className="text-xs text-gray-500">
-                            {formatDate(sale.createdAt || "")}
+                            {sale.createdAt ? formatDate(sale.createdAt) : ""}
                           </p>
                         </div>
                       </div>
