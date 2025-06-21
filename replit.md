@@ -86,8 +86,28 @@ The application uses a relational database structure with the following core ent
 - **Connection**: Connection pooling through Neon serverless with WebSocket support
 - **Environment**: `DATABASE_URL` required for all database operations
 
+## Testing Guide
+
+### Valid ISBNs for Testing
+- **9780134685991** - "Effective Java" by Joshua Bloch (Programming)
+- **9780596520687** - "JavaScript: The Definitive Guide" (Web Development)
+- **9780321573513** - "Algorithms" by Robert Sedgewick (Computer Science)
+
+### Quick Start Steps
+1. Go to "Busca por ISBN" in the sidebar
+2. Enter one of the valid ISBNs above
+3. System will automatically fetch book data
+4. Click "Adicionar ao Catálogo" to save
+5. Test the POS system with the added book
+6. Export data to Excel for Estante Virtual
+
 ## Changelog
-- June 21, 2025. Initial setup
+- June 21, 2025. Initial setup and error corrections
+  - Fixed Select component errors with empty values
+  - Corrected ISBN search automatic data fetching
+  - Resolved DOM manipulation errors
+  - Updated filtering system to use "all" instead of empty strings
+  - Improved error handling and user feedback
 
 ## User Preferences
 

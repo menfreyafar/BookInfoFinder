@@ -52,19 +52,6 @@ export default function ISBNSearch() {
   const urlIsbn = searchParams.get('isbn');
   const urlMode = searchParams.get('mode') as "scanner" | "photo" | null;
 
-  useEffect(() => {
-    if (urlIsbn) {
-      setIsbn(urlIsbn);
-      handleSearch(urlIsbn);
-    }
-    if (urlMode) {
-      setSearchMode(urlMode);
-      if (urlMode === "photo") {
-        setShowImageAnalyzer(true);
-      }
-    }
-  }, []);
-
   const searchMutation = useMutation({
     mutationFn: async (searchIsbn: string) => {
       const response = await fetch(`/api/isbn/${encodeURIComponent(searchIsbn)}`, {
@@ -126,6 +113,22 @@ export default function ISBNSearch() {
     setSearchResult(null);
     searchMutation.mutate(cleanedIsbn);
   };
+
+  // Handle URL parameters after handleSearch is defined
+  useEffect(() => {
+    if (urlIsbn) {
+      setIsbn(urlIsbn);
+      // Clear previous results before searching
+      setSearchResult(null);
+      handleSearch(urlIsbn);
+    }
+    if (urlMode) {
+      setSearchMode(urlMode);
+      if (urlMode === "photo") {
+        setShowImageAnalyzer(true);
+      }
+    }
+  }, []);
 
   const handleImageAnalysis = (result: ImageAnalysisResult) => {
     setAnalysisResult(result);
