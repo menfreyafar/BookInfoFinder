@@ -133,6 +133,33 @@ export default function Export() {
     },
   });
 
+  const testLoginMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/estante-virtual/test-login', {
+        method: 'POST'
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Erro ao testar login');
+      }
+      return result;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: data.success ? "Login Realizado" : "Login Falhou",
+        description: data.message,
+        variant: data.success ? "default" : "destructive"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro no Teste",
+        description: `Erro: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleExportEstanteVirtual = async (format: "xlsx" | "csv") => {
     if (!booksNotInEstante || booksNotInEstante.length === 0) {
       toast({

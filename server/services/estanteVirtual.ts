@@ -41,24 +41,66 @@ export class EstanteVirtualService {
     this.credentials = credentials;
   }
 
-  // Login to Estante Virtual
+  // Login to Estante Virtual - Real Implementation
   async login(): Promise<boolean> {
     if (!this.credentials) {
       throw new Error("Credenciais da Estante Virtual não configuradas");
     }
 
     try {
-      // This would implement the actual login flow to Estante Virtual
-      // For now, we'll simulate the process and return a placeholder
-      console.log("Simulando login na Estante Virtual...");
+      console.log("Fazendo login real na Estante Virtual...");
       
-      // In a real implementation, this would:
-      // 1. Make a POST request to Estante Virtual login endpoint
-      // 2. Handle authentication cookies/tokens
-      // 3. Store session information
+      // Step 1: Get login page to extract CSRF token and cookies
+      const loginPageResponse = await fetch("https://painel.estantevirtual.com.br/login", {
+        method: "GET",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+      });
+
+      if (!loginPageResponse.ok) {
+        throw new Error(`Erro ao acessar página de login: ${loginPageResponse.status}`);
+      }
+
+      const loginPageHtml = await loginPageResponse.text();
+      const cookies = loginPageResponse.headers.get("set-cookie") || "";
       
-      this.sessionToken = "simulated_session_token";
-      return true;
+      // Extract CSRF token from the login form
+      const csrfMatch = loginPageHtml.match(/<input[^>]*name="[^"]*token[^"]*"[^>]*value="([^"]+)"/i);
+      const csrfToken = csrfMatch ? csrfMatch[1] : null;
+
+      // Step 2: Attempt login with credentials
+      const formData = new URLSearchParams();
+      formData.append('email', this.credentials.email);
+      formData.append('password', this.credentials.password);
+      if (csrfToken) {
+        formData.append('_token', csrfToken);
+      }
+
+      const loginResponse = await fetch("https://painel.estantevirtual.com.br/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Cookie": cookies,
+          "Referer": "https://painel.estantevirtual.com.br/login"
+        },
+        body: formData,
+        redirect: 'manual' // Handle redirects manually to capture session
+      });
+
+      // Check if login was successful (usually redirects on success)
+      if (loginResponse.status === 302 || loginResponse.status === 200) {
+        const sessionCookies = loginResponse.headers.get("set-cookie");
+        if (sessionCookies) {
+          this.sessionToken = sessionCookies;
+          console.log("Login realizado com sucesso na Estante Virtual");
+          return true;
+        }
+      }
+
+      console.error("Falha no login - credenciais inválidas ou sistema alterado");
+      return false;
     } catch (error) {
       console.error("Erro ao fazer login na Estante Virtual:", error);
       return false;

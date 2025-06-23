@@ -455,6 +455,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test Estante Virtual login
+  app.post("/api/estante-virtual/test-login", async (req, res) => {
+    try {
+      // Set credentials from environment
+      estanteVirtualService.setCredentials({
+        email: process.env.ESTANTE_VIRTUAL_EMAIL!,
+        password: process.env.ESTANTE_VIRTUAL_PASSWORD!
+      });
+
+      console.log("Testando login na Estante Virtual...");
+      const loginResult = await estanteVirtualService.login();
+      
+      if (loginResult) {
+        res.json({ 
+          success: true, 
+          message: "Login realizado com sucesso na Estante Virtual",
+          loggedIn: true 
+        });
+      } else {
+        res.json({ 
+          success: false, 
+          message: "Falha no login - credenciais inválidas ou sistema alterado",
+          loggedIn: false 
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao testar login:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Erro interno ao testar login",
+        message: (error as Error).message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
