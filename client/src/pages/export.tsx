@@ -428,23 +428,37 @@ export default function Export() {
                       </Button>
                     </div>
 
-                    <Button
-                      onClick={() => uploadBatchMutation.mutate(selectedBooks)}
-                      disabled={selectedBooks.length === 0 || uploadBatchMutation.isPending}
-                      className="w-full"
-                    >
-                      {uploadBatchMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Enviando {selectedBooks.length} livros...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4 mr-2" />
-                          Enviar {selectedBooks.length} livros selecionados
-                        </>
+                    <div className="space-y-2">
+                      {selectedBooks.map((bookId) => {
+                        const book = booksNotInEstante.find(b => b.id === bookId);
+                        if (!book) return null;
+                        
+                        return (
+                          <div key={bookId} className="flex items-center justify-between p-2 border rounded">
+                            <span className="text-sm font-medium truncate">
+                              {book.title}
+                            </span>
+                            <Button
+                              size="sm"
+                              onClick={() => uploadSingleMutation.mutate(bookId)}
+                              disabled={uploadSingleMutation.isPending}
+                            >
+                              {uploadSingleMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Upload className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                      
+                      {selectedBooks.length === 0 && (
+                        <p className="text-gray-500 text-sm text-center py-4">
+                          Selecione livros para enviar individualmente
+                        </p>
                       )}
-                    </Button>
+                    </div>
                   </div>
                 </div>
               )}
