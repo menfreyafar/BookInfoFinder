@@ -131,6 +131,13 @@ The application uses a relational database structure with the following core ent
   - **Business Day Calculation**: Automatic 2-business-day shipping deadline calculation
   - **Enhanced Filtering**: Advanced filters for exports by type, shelf, and category
 
+- June 23, 2025. Logo update and automatic order import system
+  - **Brand Update**: Replaced logo with new spiral design SVG and updated brand name from "Library Pro" to "Luar" with subtitle "Sebo e Livraria"
+  - **Automatic Order Import**: Implemented hourly automatic import of orders from Estante Virtual marketplace
+  - **Tracking Code Integration**: Added tracking code field to orders with automatic synchronization to Estante Virtual
+  - **Order Automation Service**: Created background service for continuous order monitoring and import
+  - **Enhanced Order Management**: Orders now include tracking codes that are automatically sent to Estante Virtual when updated
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

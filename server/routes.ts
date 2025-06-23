@@ -5,6 +5,7 @@ import { searchBookByISBN, searchBrazilianBookPrices } from "./services/bookApi"
 import { analyzeBookCondition, generateBookDescription } from "./services/openai";
 import { formatBooksForEstanteVirtual, generateExcelFile, generateCSVFile, generateSalesReport } from "./services/export";
 import { estanteVirtualService } from "./services/estanteVirtual";
+import { orderImporterService } from "./services/orderImporter";
 import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -643,6 +644,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating Estante Virtual order:", error);
       res.status(500).json({ error: "Erro ao criar pedido" });
+    }
+  });
+
+  // Order Importer routes
+  app.post("/api/order-importer/import", async (req, res) => {
+    try {
+      const result = await orderImporterService.importOrders();
+      res.json(result);
+    } catch (error) {
+      console.error("Error importing orders:", error);
+      res.status(500).json({ error: "Erro ao importar pedidos" });
+    }
+  });
+
+  app.get("/api/order-importer/status", async (req, res) => {
+    try {
+      const status = orderImporterService.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting importer status:", error);
+      res.status(500).json({ error: "Erro ao verificar status do importador" });
+    }
+  });
+
+  app.post("/api/estante-virtual/orders/:id/tracking", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { trackingCode } = req.body;
+      
+      if (!trackingCode) {
+        return res.status(400).json({ error: "Código de rastreio é obrigatório" });
+      }
+
+      const result = await orderImporterService.updateTrackingCode(orderId, trackingCode);
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating tracking code:", error);
+      res.status(500).json({ error: "Erro ao atualizar código de rastreio" });
     }
   });
 

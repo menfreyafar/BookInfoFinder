@@ -31,8 +31,8 @@ export default function Sidebar() {
         <div className="flex items-center space-x-3">
           <Logo className="w-12 h-12" />
           <div>
-            <h1 className="text-xl font-bold text-black dark:text-yellow-300">LibraryPro</h1>
-            <p className="text-sm text-black-700 dark:text-yellow-500">Gestão de Livraria</p>
+            <h1 className="text-xl font-bold text-black dark:text-yellow-300">Luar</h1>
+            <p className="text-sm text-black-700 dark:text-yellow-500">Sebo e Livraria</p>
           </div>
         </div>
       </div>

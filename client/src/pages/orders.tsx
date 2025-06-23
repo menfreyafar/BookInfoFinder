@@ -34,8 +34,41 @@ interface PrintLabelModalProps {
 }
 
 function PrintLabelModal({ order, onClose }: PrintLabelModalProps) {
-  const [trackingCode, setTrackingCode] = useState("");
+  const [trackingCode, setTrackingCode] = useState(order.trackingCode || "");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const updateTrackingMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await fetch(`/api/estante-virtual/orders/${order.id}/tracking`, {
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trackingCode: code })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+        throw new Error(error.error || "Erro ao atualizar código de rastreio");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Código de rastreio atualizado e enviado para Estante Virtual"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/estante-virtual/orders"] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar código de rastreio",
+        variant: "destructive"
+      });
+    }
+  });
 
   const generateShippingLabel = () => {
     const labelContent = `
@@ -120,6 +153,29 @@ function PrintLabelModal({ order, onClose }: PrintLabelModalProps) {
                 {format(new Date(order.shippingDeadline), "dd/MM/yyyy", { locale: ptBR })}
               </p>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="trackingCode">Código de Rastreio</Label>
+            <div className="flex gap-2">
+              <Input
+                id="trackingCode"
+                value={trackingCode}
+                onChange={(e) => setTrackingCode(e.target.value)}
+                placeholder="Digite o código de rastreio"
+                className="flex-1"
+              />
+              <Button
+                onClick={() => updateTrackingMutation.mutate(trackingCode)}
+                disabled={!trackingCode.trim() || updateTrackingMutation.isPending}
+                variant="outline"
+              >
+                {updateTrackingMutation.isPending ? "Enviando..." : "Atualizar"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O código será enviado automaticamente para a Estante Virtual
+            </p>
           </div>
 
           <div>
