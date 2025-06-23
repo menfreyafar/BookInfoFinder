@@ -29,6 +29,7 @@ export const inventory = pgTable("inventory", {
   location: text("location"),
   status: varchar("status", { length: 20 }).notNull().default("available"), // available, reserved, sold
   sentToEstanteVirtual: boolean("sent_to_estante_virtual").default(false),
+  estanteVirtualId: text("estante_virtual_id"), // ID do livro na Estante Virtual
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

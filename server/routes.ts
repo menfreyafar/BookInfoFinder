@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { searchBookByISBN, searchBrazilianBookPrices } from "./services/bookApi";
 import { analyzeBookCondition, generateBookDescription } from "./services/openai";
 import { formatBooksForEstanteVirtual, generateExcelFile, generateCSVFile, generateSalesReport } from "./services/export";
+import { estanteVirtualService } from "./services/estanteVirtual";
 import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -343,6 +344,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ error: "Erro ao buscar categorias" });
+    }
+  });
+
+  // Estante Virtual Integration
+  app.post("/api/estante-virtual/credentials", async (req, res) => {
+    try {
+      const { email, password, sellerId } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email e senha são obrigatórios" });
+      }
+
+      estanteVirtualService.setCredentials({ email, password, sellerId });
+      const loginSuccess = await estanteVirtualService.login();
+
+      if (loginSuccess) {
+        res.json({ success: true, message: "Credenciais configuradas e login realizado com sucesso" });
+      } else {
+        res.status(401).json({ success: false, error: "Falha no login. Verifique suas credenciais." });
+      }
+    } catch (error) {
+      console.error("Error setting Estante Virtual credentials:", error);
+      res.status(500).json({ error: "Erro ao configurar credenciais" });
+    }
+  });
+
+  app.get("/api/estante-virtual/status", async (req, res) => {
+    try {
+      const status = estanteVirtualService.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting Estante Virtual status:", error);
+      res.status(500).json({ error: "Erro ao verificar status" });
+    }
+  });
+
+  app.post("/api/estante-virtual/upload-book/:bookId", async (req, res) => {
+    try {
+      const bookId = parseInt(req.params.bookId);
+      const book = await storage.getBook(bookId);
+      
+      if (!book) {
+        return res.status(404).json({ error: "Livro não encontrado" });
+      }
+
+      const bookWithInventory = {
+        ...book,
+        inventory: await storage.getInventory(bookId)
+      };
+
+      const result = await estanteVirtualService.uploadBook(bookWithInventory);
+      
+      if (result.success && result.bookId) {
+        // Mark book as sent to Estante Virtual
+        if (bookWithInventory.inventory) {
+          await storage.updateInventory(bookWithInventory.inventory.id, {
+            sentToEstanteVirtual: true,
+            estanteVirtualId: result.bookId
+          });
+        }
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error uploading book to Estante Virtual:", error);
+      res.status(500).json({ error: "Erro ao enviar livro para Estante Virtual" });
+    }
+  });
+
+  app.post("/api/estante-virtual/upload-batch", async (req, res) => {
+    try {
+      const { bookIds } = req.body;
+      
+      if (!Array.isArray(bookIds) || bookIds.length === 0) {
+        return res.status(400).json({ error: "Lista de IDs de livros é obrigatória" });
+      }
+
+      const books = [];
+      for (const bookId of bookIds) {
+        const book = await storage.getBook(bookId);
+        if (book) {
+          const bookWithInventory = {
+            ...book,
+            inventory: await storage.getInventory(bookId)
+          };
+          books.push(bookWithInventory);
+        }
+      }
+
+      const result = await estanteVirtualService.uploadBooks(books);
+      
+      // Update inventory for successful uploads
+      for (const uploadResult of result.results) {
+        if (uploadResult.success && uploadResult.bookId) {
+          const book = books.find(b => b.title === uploadResult.book);
+          if (book && book.inventory) {
+            await storage.updateInventory(book.inventory.id, {
+              sentToEstanteVirtual: true,
+              estanteVirtualId: uploadResult.bookId
+            });
+          }
+        }
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error uploading books to Estante Virtual:", error);
+      res.status(500).json({ error: "Erro ao enviar livros para Estante Virtual" });
     }
   });
 

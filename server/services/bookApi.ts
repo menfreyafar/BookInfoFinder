@@ -54,6 +54,10 @@ async function searchGoogleBooks(isbn: string): Promise<BookApiResponse> {
     
     const bookInfo = data.items[0].volumeInfo;
     
+    // Calculate estimated weight based on page count + ALWAYS add 100g
+    const baseWeight = bookInfo.pageCount ? (bookInfo.pageCount * 0.8) : 200; // 0.8g per page or 200g default
+    const estimatedWeight = Math.round(baseWeight + 100); // Always add 100g
+
     const book: Partial<InsertBook> = {
       isbn: isbn,
       title: bookInfo.title || "Título não disponível",
@@ -63,6 +67,7 @@ async function searchGoogleBooks(isbn: string): Promise<BookApiResponse> {
       synopsis: bookInfo.description || "Sinopse não disponível",
       category: bookInfo.categories ? bookInfo.categories[0] : "Não categorizado",
       coverImage: bookInfo.imageLinks?.thumbnail || bookInfo.imageLinks?.smallThumbnail,
+      weight: estimatedWeight,
     };
     
     return { success: true, book };
@@ -91,6 +96,10 @@ async function searchOpenLibrary(isbn: string): Promise<BookApiResponse> {
     
     const bookInfo = data[bookKey];
     
+    // Estimate weight: Open Library doesn't provide page count, so use average base weight + ALWAYS add 100g
+    const baseWeight = 250; // Average paperback base weight
+    const estimatedWeight = baseWeight + 100; // Always add 100g
+
     const book: Partial<InsertBook> = {
       isbn: isbn,
       title: bookInfo.title || "Título não disponível",
@@ -100,6 +109,7 @@ async function searchOpenLibrary(isbn: string): Promise<BookApiResponse> {
       synopsis: bookInfo.description || "Sinopse não disponível",
       category: bookInfo.subjects ? bookInfo.subjects[0].name : "Não categorizado",
       coverImage: bookInfo.cover?.medium || bookInfo.cover?.small,
+      weight: estimatedWeight,
     };
     
     return { success: true, book };
