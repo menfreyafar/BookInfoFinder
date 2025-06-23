@@ -1,87 +1,50 @@
 export default function Logo({ className = "w-12 h-12" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="0 0 1121.8512 955.23969"
       className={className}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Main orange circle */}
-      <circle cx="50" cy="50" r="47" fill="#FF7F00" />
+      {/* Main orange ellipse - base from your original design */}
+      <ellipse
+        fill="#fd6c08"
+        fillOpacity="1"
+        cx="549.29218"
+        cy="476.44492"
+        rx="437.6713"
+        ry="443.54608"
+      />
       
-      {/* Outer decorative dashes */}
-      <g stroke="black" strokeWidth="2" fill="none" strokeLinecap="round">
-        {/* Top */}
-        <path d="M 25 12 L 22 15" />
-        <path d="M 35 8 L 32 12" />
-        <path d="M 50 6 L 50 10" />
-        <path d="M 65 8 L 68 12" />
-        <path d="M 75 12 L 78 15" />
+      {/* Yellow organic shapes - simplified from your original paths */}
+      <g fill="#f8d64c" fillOpacity="1">
+        {/* Top flowing elements */}
+        <path d="M 431.8,303 C 450,290 480,275 520,260 C 580,235 650,220 720,225 C 780,230 820,250 840,280 C 850,300 845,320 835,340 C 820,370 790,390 750,400 C 700,415 640,420 580,415 C 520,410 470,395 440,375 C 420,360 415,340 425,320 C 430,310 435,305 431.8,303 Z" />
         
-        {/* Right */}
-        <path d="M 88 25 L 85 22" />
-        <path d="M 92 35 L 88 32" />
-        <path d="M 94 50 L 90 50" />
-        <path d="M 92 65 L 88 68" />
-        <path d="M 88 75 L 85 78" />
+        {/* Right side flowing elements */}
+        <path d="M 760,590 C 740,620 715,645 685,665 C 650,690 610,710 565,720 C 520,730 475,725 435,710 C 400,695 375,670 365,640 C 355,610 360,580 375,555 C 395,520 430,495 470,480 C 520,460 575,450 625,455 C 675,460 720,475 750,500 C 770,520 775,545 770,570 C 765,585 762,588 760,590 Z" />
         
-        {/* Bottom */}
-        <path d="M 75 88 L 78 85" />
-        <path d="M 65 92 L 68 88" />
-        <path d="M 50 94 L 50 90" />
-        <path d="M 35 92 L 32 88" />
-        <path d="M 25 88 L 22 85" />
+        {/* Bottom flowing elements */}
+        <path d="M 435,714 C 465,725 500,730 540,728 C 590,725 640,715 685,700 C 730,685 770,665 800,640 C 825,620 840,595 845,568 C 850,540 845,512 835,486 C 820,450 795,420 765,395 C 725,365 680,340 630,325 C 575,308 515,300 460,305 C 410,310 365,325 330,350 C 300,370 280,395 275,425 C 270,450 280,475 300,495 C 325,520 360,535 400,545 C 420,550 430,720 435,714 Z" />
         
-        {/* Left */}
-        <path d="M 12 75 L 15 78" />
-        <path d="M 8 65 L 12 68" />
-        <path d="M 6 50 L 10 50" />
-        <path d="M 8 35 L 12 32" />
-        <path d="M 12 25 L 15 22" />
-      </g>
-      
-      {/* Inner yellow circle */}
-      <circle cx="50" cy="50" r="30" fill="#FFD700" />
-      
-      {/* Middle decorative dashes */}
-      <g stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round">
-        {/* Top */}
-        <path d="M 35 25 L 33 27" />
-        <path d="M 45 22 L 43 25" />
-        <path d="M 55 22 L 57 25" />
-        <path d="M 65 25 L 67 27" />
+        {/* Central organic shape - main focal element */}
+        <ellipse
+          cx="545.97"
+          cy="470.38"
+          rx="95"
+          ry="85"
+          fill="#f8d64c"
+          fillOpacity="1"
+          transform="rotate(-15 545.97 470.38)"
+        />
         
-        {/* Right */}
-        <path d="M 75 35 L 73 33" />
-        <path d="M 78 45 L 75 43" />
-        <path d="M 78 55 L 75 57" />
-        <path d="M 75 65 L 73 67" />
+        {/* Inner detail elements */}
+        <path d="M 520,450 C 540,440 565,445 585,460 C 600,475 605,495 595,515 C 585,535 565,545 545,540 C 525,535 510,520 515,500 C 518,485 520,465 520,450 Z" />
         
-        {/* Bottom */}
-        <path d="M 65 75 L 67 73" />
-        <path d="M 55 78 L 57 75" />
-        <path d="M 45 78 L 43 75" />
-        <path d="M 35 75 L 33 73" />
-        
-        {/* Left */}
-        <path d="M 25 65 L 27 67" />
-        <path d="M 22 55 L 25 57" />
-        <path d="M 22 45 L 25 43" />
-        <path d="M 25 35 L 27 33" />
-      </g>
-      
-      {/* Central spiral design */}
-      <g stroke="black" strokeWidth="1.5" fill="none" strokeLinecap="round">
-        {/* Outer spiral */}
-        <path d="M 50 35 Q 60 40 55 50 Q 50 60 40 55 Q 30 50 35 40 Q 40 30 50 35" />
-        
-        {/* Middle spiral */}
-        <path d="M 50 40 Q 55 43 53 50 Q 50 57 43 55 Q 36 52 38 45 Q 41 38 48 40" />
-        
-        {/* Inner spiral */}
-        <path d="M 50 45 Q 52 47 51 50 Q 50 53 47 52 Q 44 51 45 48 Q 46 45 49 46" />
-        
-        {/* Center dot */}
-        <circle cx="50" cy="50" r="2" fill="black" />
+        {/* Small accent elements around the center */}
+        <circle cx="480" cy="420" r="12" fill="#f8d64c" fillOpacity="0.8" />
+        <circle cx="620" cy="430" r="8" fill="#f8d64c" fillOpacity="0.8" />
+        <circle cx="590" cy="520" r="10" fill="#f8d64c" fillOpacity="0.8" />
+        <circle cx="500" cy="510" r="6" fill="#f8d64c" fillOpacity="0.8" />
       </g>
     </svg>
   );
