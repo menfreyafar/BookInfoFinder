@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Download, 
   FileSpreadsheet, 
@@ -13,9 +17,13 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Settings,
+  Upload,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { BookWithInventory, SaleWithItems } from "@shared/schema";
 import { SalesReport } from "@/lib/types";
 
@@ -35,8 +43,16 @@ function TopBar() {
 export default function Export() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "success" | "error">("idle");
+  const [selectedBooks, setSelectedBooks] = useState<number[]>([]);
+  const [estanteCredentials, setEstanteCredentials] = useState({
+    email: "",
+    password: "",
+    sellerId: ""
+  });
+  const [showCredentialsDialog, setShowCredentialsDialog] = useState(false);
   
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: booksNotInEstante, isLoading: loadingBooks } = useQuery({
     queryKey: ["/api/books"],
@@ -47,6 +63,74 @@ export default function Export() {
   const { data: sales } = useQuery({
     queryKey: ["/api/sales"],
     queryFn: () => fetch("/api/sales").then(res => res.json()) as Promise<SaleWithItems[]>,
+  });
+
+  const { data: estanteStatus } = useQuery({
+    queryKey: ["/api/estante-virtual/status"],
+    queryFn: () => fetch("/api/estante-virtual/status").then(res => res.json()),
+  });
+
+  const credentialsMutation = useMutation({
+    mutationFn: async (credentials: typeof estanteCredentials) => {
+      return await apiRequest("POST", "/api/estante-virtual/credentials", credentials);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/estante-virtual/status"] });
+      toast({
+        title: "Credenciais Configuradas",
+        description: "Login realizado com sucesso na Estante Virtual",
+      });
+      setShowCredentialsDialog(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro no Login",
+        description: "Verifique suas credenciais: " + error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const uploadSingleMutation = useMutation({
+    mutationFn: async (bookId: number) => {
+      return await apiRequest("POST", `/api/estante-virtual/upload-book/${bookId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/books"] });
+      toast({
+        title: "Livro Enviado",
+        description: "Livro enviado com sucesso para Estante Virtual",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro no Envio",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const uploadBatchMutation = useMutation({
+    mutationFn: async (bookIds: number[]) => {
+      return await apiRequest("POST", "/api/estante-virtual/upload-batch", { bookIds });
+    },
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/books"] });
+      const successCount = result.results.filter((r: any) => r.success).length;
+      toast({
+        title: "Envio Concluído",
+        description: `${successCount} de ${result.results.length} livros enviados com sucesso`,
+      });
+      setSelectedBooks([]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro no Envio em Lote",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const handleExportEstanteVirtual = async (format: "xlsx" | "csv") => {
@@ -210,9 +294,164 @@ export default function Export() {
                 </p>
               </div>
 
+              {/* Estante Virtual Integration Section */}
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-3 flex items-center">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Integração Automática
+                </h4>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700">Status da Conexão:</span>
+                    <Badge className={estanteStatus?.loggedIn ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                      {estanteStatus?.loggedIn ? "Conectado" : "Desconectado"}
+                    </Badge>
+                  </div>
+
+                  {!estanteStatus?.hasCredentials && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Configure suas credenciais da Estante Virtual para envio automático
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Dialog open={showCredentialsDialog} onOpenChange={setShowCredentialsDialog}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Configurar Login
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Credenciais da Estante Virtual</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={estanteCredentials.email}
+                              onChange={(e) => setEstanteCredentials({...estanteCredentials, email: e.target.value})}
+                              placeholder="seu@email.com"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="password">Senha</Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              value={estanteCredentials.password}
+                              onChange={(e) => setEstanteCredentials({...estanteCredentials, password: e.target.value})}
+                              placeholder="sua senha"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="sellerId">ID do Vendedor (opcional)</Label>
+                            <Input
+                              id="sellerId"
+                              value={estanteCredentials.sellerId}
+                              onChange={(e) => setEstanteCredentials({...estanteCredentials, sellerId: e.target.value})}
+                              placeholder="ID opcional"
+                            />
+                          </div>
+                          <Button 
+                            onClick={() => credentialsMutation.mutate(estanteCredentials)}
+                            disabled={!estanteCredentials.email || !estanteCredentials.password || credentialsMutation.isPending}
+                            className="w-full"
+                          >
+                            {credentialsMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Configurando...
+                              </>
+                            ) : (
+                              "Salvar e Conectar"
+                            )}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              </div>
+
+              {/* Auto Upload Section */}
+              {estanteStatus?.loggedIn && booksNotInEstante && booksNotInEstante.length > 0 && (
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold mb-3 flex items-center">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Envio Automático
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    {/* Book Selection */}
+                    <div className="max-h-40 overflow-y-auto border rounded p-2">
+                      {booksNotInEstante.map((book) => (
+                        <div key={book.id} className="flex items-center space-x-2 py-1">
+                          <Checkbox
+                            checked={selectedBooks.includes(book.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedBooks([...selectedBooks, book.id]);
+                              } else {
+                                setSelectedBooks(selectedBooks.filter(id => id !== book.id));
+                              }
+                            }}
+                          />
+                          <span className="text-sm truncate">
+                            {book.title} - {book.author}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedBooks(booksNotInEstante.map(b => b.id))}
+                      >
+                        Selecionar Todos
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedBooks([])}
+                      >
+                        Limpar Seleção
+                      </Button>
+                    </div>
+
+                    <Button
+                      onClick={() => uploadBatchMutation.mutate(selectedBooks)}
+                      disabled={selectedBooks.length === 0 || uploadBatchMutation.isPending}
+                      className="w-full"
+                    >
+                      {uploadBatchMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Enviando {selectedBooks.length} livros...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Enviar {selectedBooks.length} livros selecionados
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Status da Sincronização:</span>
+                  <span className="text-gray-700">Exportação Manual:</span>
                   <Badge className="bg-blue-100 text-blue-800">
                     <Clock className="w-3 h-3 mr-1" />
                     Pendente

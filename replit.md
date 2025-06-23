@@ -109,6 +109,14 @@ The application uses a relational database structure with the following core ent
   - Updated filtering system to use "all" instead of empty strings
   - Improved error handling and user feedback
 
+- June 21, 2025. Advanced features implementation
+  - **Automatic Weight Calculation**: Books now automatically get weight based on page count + 100g buffer
+  - **Estante Virtual Auto-Integration**: Complete automation for uploading books to Estante Virtual
+  - Added credentials management for Estante Virtual login
+  - Implemented batch upload functionality with progress tracking
+  - Enhanced export page with automatic and manual upload options
+  - Database schema updated to track Estante Virtual book IDs
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

@@ -90,7 +90,10 @@ export default function BookForm({ book, onClose }: BookFormProps) {
 
   const updateMutation = useMutation({
     mutationFn: async (data: BookFormData) => {
-      const response = await apiRequest("PUT", `/api/books/${book!.id}`, data);
+      if (!book || !book.id) {
+        throw new Error("ID do livro não encontrado");
+      }
+      const response = await apiRequest("PUT", `/api/books/${book.id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -113,7 +116,7 @@ export default function BookForm({ book, onClose }: BookFormProps) {
   const onSubmit = async (data: BookFormData) => {
     setIsSubmitting(true);
     try {
-      if (book) {
+      if (book && book.id) {
         await updateMutation.mutateAsync(data);
       } else {
         await createMutation.mutateAsync(data);
