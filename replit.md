@@ -117,6 +117,20 @@ The application uses a relational database structure with the following core ent
   - Enhanced export page with automatic and manual upload options
   - Database schema updated to track Estante Virtual book IDs
 
+- June 23, 2025. Major UI overhaul and new features
+  - **Brand Identity Update**: Complete color scheme migration to yellow/orange/black theme matching company logo
+  - **Logo Integration**: Custom SVG logo added to sidebar and branding
+  - **Product Type Support**: Added vinyl/disc support with automatic 5000g weight setting
+  - **Shelf Management**: Added shelf field for book organization and filtering
+  - **Order Management System**: Complete Estante Virtual order import and tracking system
+  - **Advanced Export Options**: 
+    - PDF catalog export with product images
+    - Export by product type (books/vinis) with filters
+    - Export by shelf for book organization
+  - **Shipping Label Generator**: Automated label and content declaration printing
+  - **Business Day Calculation**: Automatic 2-business-day shipping deadline calculation
+  - **Enhanced Filtering**: Advanced filters for exports by type, shelf, and category
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

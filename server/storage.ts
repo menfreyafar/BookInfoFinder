@@ -4,6 +4,8 @@ import {
   sales, 
   saleItems, 
   categories,
+  estanteVirtualOrders,
+  estanteVirtualOrderItems,
   type Book, 
   type InsertBook,
   type Inventory,
@@ -14,8 +16,13 @@ import {
   type InsertSaleItem,
   type Category,
   type InsertCategory,
+  type EstanteVirtualOrder,
+  type InsertEstanteVirtualOrder,
+  type EstanteVirtualOrderItem,
+  type InsertEstanteVirtualOrderItem,
   type BookWithInventory,
-  type SaleWithItems
+  type SaleWithItems,
+  type EstanteVirtualOrderWithItems
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, or, like, lt } from "drizzle-orm";
@@ -46,6 +53,12 @@ export interface IStorage {
   // Categories
   getAllCategories(): Promise<Category[]>;
   createCategory(category: InsertCategory): Promise<Category>;
+  
+  // Estante Virtual Orders
+  createEstanteVirtualOrder(order: InsertEstanteVirtualOrder, items: InsertEstanteVirtualOrderItem[]): Promise<EstanteVirtualOrderWithItems>;
+  getEstanteVirtualOrder(id: number): Promise<EstanteVirtualOrderWithItems | undefined>;
+  getAllEstanteVirtualOrders(): Promise<EstanteVirtualOrderWithItems[]>;
+  updateEstanteVirtualOrder(id: number, order: Partial<InsertEstanteVirtualOrder>): Promise<EstanteVirtualOrder | undefined>;
   
   // Dashboard stats
   getDashboardStats(): Promise<{
@@ -83,7 +96,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBook(id: number): Promise<boolean> {
     const result = await db.delete(books).where(eq(books.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async searchBooks(query: string): Promise<BookWithInventory[]> {
@@ -245,6 +258,74 @@ export class DatabaseStorage implements IStorage {
   async createCategory(category: InsertCategory): Promise<Category> {
     const [newCategory] = await db.insert(categories).values(category).returning();
     return newCategory;
+  }
+
+  async createEstanteVirtualOrder(order: InsertEstanteVirtualOrder, items: InsertEstanteVirtualOrderItem[]): Promise<EstanteVirtualOrderWithItems> {
+    const [newOrder] = await db.insert(estanteVirtualOrders).values(order).returning();
+    
+    const orderItems = await Promise.all(
+      items.map(async (item) => {
+        const [newItem] = await db.insert(estanteVirtualOrderItems).values({
+          ...item,
+          orderId: newOrder.id
+        }).returning();
+        return newItem;
+      })
+    );
+
+    const itemsWithBooks = await Promise.all(
+      orderItems.map(async (item) => {
+        const [book] = await db.select().from(books).where(eq(books.id, item.bookId));
+        return {
+          ...item,
+          book: book!
+        };
+      })
+    );
+
+    return {
+      ...newOrder,
+      items: itemsWithBooks
+    };
+  }
+
+  async getEstanteVirtualOrder(id: number): Promise<EstanteVirtualOrderWithItems | undefined> {
+    const [order] = await db.select().from(estanteVirtualOrders).where(eq(estanteVirtualOrders.id, id));
+    if (!order) return undefined;
+
+    const items = await db
+      .select()
+      .from(estanteVirtualOrderItems)
+      .leftJoin(books, eq(estanteVirtualOrderItems.bookId, books.id))
+      .where(eq(estanteVirtualOrderItems.orderId, id));
+
+    return {
+      ...order,
+      items: items.map(row => ({
+        ...row.estante_virtual_order_items,
+        book: row.books!
+      }))
+    };
+  }
+
+  async getAllEstanteVirtualOrders(): Promise<EstanteVirtualOrderWithItems[]> {
+    const allOrders = await db.select().from(estanteVirtualOrders).orderBy(desc(estanteVirtualOrders.createdAt));
+    
+    return Promise.all(
+      allOrders.map(async (order) => {
+        const orderWithItems = await this.getEstanteVirtualOrder(order.id);
+        return orderWithItems!;
+      })
+    );
+  }
+
+  async updateEstanteVirtualOrder(id: number, order: Partial<InsertEstanteVirtualOrder>): Promise<EstanteVirtualOrder | undefined> {
+    const [updatedOrder] = await db
+      .update(estanteVirtualOrders)
+      .set(order)
+      .where(eq(estanteVirtualOrders.id, id))
+      .returning();
+    return updatedOrder;
   }
 
   async getDashboardStats(): Promise<{

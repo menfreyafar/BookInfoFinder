@@ -20,8 +20,11 @@ import {
   AlertCircle,
   Settings,
   Upload,
-  Loader2
+  Loader2,
+  FileImage,
+  Filter
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { BookWithInventory, SaleWithItems } from "@shared/schema";
@@ -50,6 +53,11 @@ export default function Export() {
     sellerId: ""
   });
   const [showCredentialsDialog, setShowCredentialsDialog] = useState(false);
+  const [exportFilters, setExportFilters] = useState({
+    productType: "all",
+    shelf: "",
+    category: ""
+  });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -210,6 +218,100 @@ export default function Export() {
     }
   };
 
+  const handleExportCatalogPDF = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (exportFilters.productType !== "all") {
+        params.append("productType", exportFilters.productType);
+      }
+      if (exportFilters.shelf) {
+        params.append("shelf", exportFilters.shelf);
+      }
+      if (exportFilters.category) {
+        params.append("category", exportFilters.category);
+      }
+
+      const response = await fetch(`/api/export/catalog-pdf?${params.toString()}`, {
+        method: "GET",
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha na exportação do catálogo");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `catalogo-${exportFilters.productType}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Catálogo Exportado",
+        description: "Catálogo PDF com imagens baixado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro na Exportação",
+        description: "Erro ao exportar catálogo: " + (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportByType = async (type: "book" | "vinyl", format: "xlsx" | "csv") => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams({
+        productType: type,
+        format: format
+      });
+      
+      if (type === "book" && exportFilters.shelf) {
+        params.append("shelf", exportFilters.shelf);
+      }
+
+      const response = await fetch(`/api/export/by-type?${params.toString()}`, {
+        method: "GET",
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha na exportação por tipo");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `${type === "book" ? "livros" : "vinis"}-${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Exportação Concluída",
+        description: `${type === "book" ? "Livros" : "Vinis"} exportados com sucesso!`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro na Exportação",
+        description: "Erro ao exportar por tipo: " + (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleGenerateSalesReport = async () => {
     if (!sales || sales.length === 0) {
       toast({
@@ -298,6 +400,160 @@ export default function Export() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Export Filters */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Filter className="w-5 h-5 text-orange-600" />
+              <span>Filtros de Exportação</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="productType">Tipo de Produto</Label>
+                <Select value={exportFilters.productType} onValueChange={(value) => setExportFilters({...exportFilters, productType: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="book">Livros</SelectItem>
+                    <SelectItem value="vinyl">Vinis</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="shelf">Estante (apenas livros)</Label>
+                <Input
+                  id="shelf"
+                  value={exportFilters.shelf}
+                  onChange={(e) => setExportFilters({...exportFilters, shelf: e.target.value})}
+                  placeholder="A1, B2, etc."
+                  disabled={exportFilters.productType === "vinyl"}
+                />
+              </div>
+              <div>
+                <Label htmlFor="category">Categoria</Label>
+                <Input
+                  id="category"
+                  value={exportFilters.category}
+                  onChange={(e) => setExportFilters({...exportFilters, category: e.target.value})}
+                  placeholder="Literatura, Rock, etc."
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* New Export Options */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Catalog PDF Export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileImage className="w-5 h-5 text-red-600" />
+                <span>Catálogo PDF</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Exporte catálogo com imagens dos produtos em PDF
+              </p>
+              <Button 
+                onClick={handleExportCatalogPDF}
+                disabled={isExporting}
+                className="w-full bg-red-600 hover:bg-red-700"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FileImage className="w-4 h-4 mr-2" />
+                )}
+                Gerar PDF
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Books Export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                <span>Exportar Livros</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Exporte apenas livros, com filtro por estante
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => handleExportByType("book", "xlsx")}
+                  disabled={isExporting}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  {isExporting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  )}
+                  Excel
+                </Button>
+                <Button 
+                  onClick={() => handleExportByType("book", "csv")}
+                  disabled={isExporting}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Vinyl Export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileSpreadsheet className="w-5 h-5 text-purple-600" />
+                <span>Exportar Vinis</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Exporte apenas discos de vinil
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => handleExportByType("vinyl", "xlsx")}
+                  disabled={isExporting}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  {isExporting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  )}
+                  Excel
+                </Button>
+                <Button 
+                  onClick={() => handleExportByType("vinyl", "csv")}
+                  disabled={isExporting}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Estante Virtual Export */}

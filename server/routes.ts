@@ -336,6 +336,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/export/by-type", async (req, res) => {
+    try {
+      const { productType, format, shelf } = req.query;
+      
+      if (!productType || !format) {
+        return res.status(400).json({ error: "Tipo de produto e formato são obrigatórios" });
+      }
+
+      let books = await storage.getAllBooks();
+      
+      // Filter by product type
+      books = books.filter(book => book.productType === productType);
+      
+      // Filter by shelf if provided (for books only)
+      if (shelf && productType === "book") {
+        books = books.filter(book => book.shelf === shelf);
+      }
+
+      const exportData = formatBooksForEstanteVirtual(books);
+      
+      if (format === "csv") {
+        const csvData = generateCSVFile(exportData);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=${productType === "book" ? "livros" : "vinis"}.csv`);
+        res.send(csvData);
+      } else {
+        const excelBuffer = generateExcelFile(exportData);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=${productType === "book" ? "livros" : "vinis"}.xlsx`);
+        res.send(excelBuffer);
+      }
+    } catch (error) {
+      console.error("Error exporting by type:", error);
+      res.status(500).json({ error: "Erro ao exportar por tipo" });
+    }
+  });
+
+  app.get("/api/export/catalog-pdf", async (req, res) => {
+    try {
+      const { productType, shelf, category } = req.query;
+      
+      let books = await storage.getAllBooks();
+      
+      // Apply filters
+      if (productType && productType !== "all") {
+        books = books.filter(book => book.productType === productType);
+      }
+      if (shelf) {
+        books = books.filter(book => book.shelf === shelf);
+      }
+      if (category) {
+        books = books.filter(book => book.category === category);
+      }
+
+      // Generate PDF content (simplified for now - would need PDF library)
+      const catalogData = books.map(book => ({
+        title: book.title,
+        author: book.author,
+        price: book.usedPrice || book.newPrice || "0",
+        condition: book.condition || "Usado",
+        category: book.category || "Não especificada",
+        shelf: book.shelf || "Não especificada"
+      }));
+
+      // For now, return JSON data - in production would generate actual PDF
+      res.json({
+        message: "Funcionalidade de PDF será implementada com biblioteca específica",
+        data: catalogData,
+        totalItems: catalogData.length
+      });
+    } catch (error) {
+      console.error("Error generating catalog PDF:", error);
+      res.status(500).json({ error: "Erro ao gerar catálogo PDF" });
+    }
+  });
+
   // Categories
   app.get("/api/categories", async (req, res) => {
     try {
@@ -487,6 +563,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Erro interno ao testar login",
         message: (error as Error).message 
       });
+    }
+  });
+
+  // Estante Virtual Orders Management
+  app.get("/api/estante-virtual/orders", async (req, res) => {
+    try {
+      const orders = await storage.getAllEstanteVirtualOrders();
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching Estante Virtual orders:", error);
+      res.status(500).json({ error: "Erro ao buscar pedidos da Estante Virtual" });
+    }
+  });
+
+  app.get("/api/estante-virtual/orders/:id", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const order = await storage.getEstanteVirtualOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Pedido não encontrado" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error fetching Estante Virtual order:", error);
+      res.status(500).json({ error: "Erro ao buscar pedido" });
+    }
+  });
+
+  app.patch("/api/estante-virtual/orders/:id", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      const updatedOrder = await storage.updateEstanteVirtualOrder(orderId, updateData);
+      
+      if (!updatedOrder) {
+        return res.status(404).json({ error: "Pedido não encontrado" });
+      }
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating Estante Virtual order:", error);
+      res.status(500).json({ error: "Erro ao atualizar pedido" });
+    }
+  });
+
+  app.post("/api/estante-virtual/orders", async (req, res) => {
+    try {
+      const { order, items } = req.body;
+      
+      if (!order || !items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Dados do pedido e itens são obrigatórios" });
+      }
+
+      // Calculate shipping deadline (2 business days from order date)
+      const orderDate = new Date(order.orderDate);
+      const shippingDeadline = new Date(orderDate);
+      
+      // Add 2 business days
+      let businessDaysAdded = 0;
+      while (businessDaysAdded < 2) {
+        shippingDeadline.setDate(shippingDeadline.getDate() + 1);
+        const dayOfWeek = shippingDeadline.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip weekends
+          businessDaysAdded++;
+        }
+      }
+
+      const orderWithDeadline = {
+        ...order,
+        shippingDeadline: shippingDeadline
+      };
+
+      const newOrder = await storage.createEstanteVirtualOrder(orderWithDeadline, items);
+      res.json(newOrder);
+    } catch (error) {
+      console.error("Error creating Estante Virtual order:", error);
+      res.status(500).json({ error: "Erro ao criar pedido" });
     }
   });
 

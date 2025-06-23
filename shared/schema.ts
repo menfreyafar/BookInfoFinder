@@ -12,12 +12,14 @@ export const books = pgTable("books", {
   publishYear: integer("publish_year"),
   edition: text("edition"),
   category: text("category"),
+  productType: varchar("product_type", { length: 20 }).notNull().default("book"), // book, vinyl
   synopsis: text("synopsis"),
   weight: integer("weight"), // in grams
   usedPrice: decimal("used_price", { precision: 10, scale: 2 }),
   newPrice: decimal("new_price", { precision: 10, scale: 2 }),
   condition: text("condition"),
   coverImage: text("cover_image"),
+  shelf: text("shelf"), // estante para organização
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -58,6 +60,30 @@ export const categories = pgTable("categories", {
   description: text("description"),
 });
 
+export const estanteVirtualOrders = pgTable("estante_virtual_orders", {
+  id: serial("id").primaryKey(),
+  orderId: text("order_id").notNull().unique(),
+  customerName: text("customer_name").notNull(),
+  customerAddress: text("customer_address").notNull(),
+  customerPhone: text("customer_phone"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  shippingDeadline: timestamp("shipping_deadline").notNull(), // prazo para postagem
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, shipped, delivered
+  trackingCode: text("tracking_code"),
+  orderDate: timestamp("order_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const estanteVirtualOrderItems = pgTable("estante_virtual_order_items", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => estanteVirtualOrders.id).notNull(),
+  bookId: integer("book_id").references(() => books.id).notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+});
+
 // Relations
 export const booksRelations = relations(books, ({ one, many }) => ({
   inventory: one(inventory, {
@@ -89,6 +115,21 @@ export const saleItemsRelations = relations(saleItems, ({ one }) => ({
   }),
 }));
 
+export const estanteVirtualOrdersRelations = relations(estanteVirtualOrders, ({ many }) => ({
+  items: many(estanteVirtualOrderItems),
+}));
+
+export const estanteVirtualOrderItemsRelations = relations(estanteVirtualOrderItems, ({ one }) => ({
+  order: one(estanteVirtualOrders, {
+    fields: [estanteVirtualOrderItems.orderId],
+    references: [estanteVirtualOrders.id],
+  }),
+  book: one(books, {
+    fields: [estanteVirtualOrderItems.bookId],
+    references: [books.id],
+  }),
+}));
+
 // Schemas
 export const insertBookSchema = createInsertSchema(books).omit({
   id: true,
@@ -115,6 +156,16 @@ export const insertCategorySchema = createInsertSchema(categories).omit({
   id: true,
 });
 
+export const insertEstanteVirtualOrderSchema = createInsertSchema(estanteVirtualOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEstanteVirtualOrderItemSchema = createInsertSchema(estanteVirtualOrderItems).omit({
+  id: true,
+});
+
 // Types
 export type Book = typeof books.$inferSelect;
 export type InsertBook = z.infer<typeof insertBookSchema>;
@@ -134,4 +185,13 @@ export type BookWithInventory = Book & {
 
 export type SaleWithItems = Sale & {
   items: (SaleItem & { book: Book })[];
+};
+
+export type EstanteVirtualOrder = typeof estanteVirtualOrders.$inferSelect;
+export type InsertEstanteVirtualOrder = z.infer<typeof insertEstanteVirtualOrderSchema>;
+export type EstanteVirtualOrderItem = typeof estanteVirtualOrderItems.$inferSelect;
+export type InsertEstanteVirtualOrderItem = z.infer<typeof insertEstanteVirtualOrderItemSchema>;
+
+export type EstanteVirtualOrderWithItems = EstanteVirtualOrder & {
+  items: (EstanteVirtualOrderItem & { book: Book })[];
 };

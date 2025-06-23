@@ -10,6 +10,7 @@ import Catalog from "@/pages/catalog";
 import Inventory from "@/pages/inventory";
 import POS from "@/pages/pos";
 import Export from "@/pages/export";
+import Orders from "@/pages/orders";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
           <Route path="/catalog" component={Catalog} />
           <Route path="/inventory" component={Inventory} />
           <Route path="/pos" component={POS} />
+          <Route path="/orders" component={Orders} />
           <Route path="/export" component={Export} />
           <Route path="/settings" component={() => <div className="p-6">Configurações em desenvolvimento</div>} />
           <Route component={NotFound} />

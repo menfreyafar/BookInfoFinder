@@ -22,11 +22,13 @@ const bookFormSchema = z.object({
   publishYear: z.number().optional(),
   edition: z.string().optional(),
   category: z.string().optional(),
+  productType: z.string().default("book"),
   synopsis: z.string().optional(),
   weight: z.number().optional(),
   usedPrice: z.string().optional(),
   newPrice: z.string().optional(),
   condition: z.string().optional(),
+  shelf: z.string().optional(),
   quantity: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
   location: z.string().optional(),
   sentToEstanteVirtual: z.boolean().default(false),
@@ -54,16 +56,26 @@ export default function BookForm({ book, onClose }: BookFormProps) {
       publishYear: book?.publishYear || undefined,
       edition: book?.edition || "",
       category: book?.category || "",
+      productType: book?.productType || "book",
       synopsis: book?.synopsis || "",
       weight: book?.weight || undefined,
       usedPrice: book?.usedPrice || "",
       newPrice: book?.newPrice || "",
       condition: book?.condition || "Usado",
+      shelf: book?.shelf || "",
       quantity: book?.inventory?.quantity || 0,
       location: book?.inventory?.location || "",
       sentToEstanteVirtual: book?.inventory?.sentToEstanteVirtual || false,
     },
   });
+
+  // Watch for product type changes to auto-set weight for vinyl
+  const productType = form.watch("productType");
+  
+  // Auto-set weight to 5000g when vinyl is selected
+  if (productType === "vinyl" && !form.getValues("weight")) {
+    form.setValue("weight", 5000);
+  }
 
   const createMutation = useMutation({
     mutationFn: async (data: BookFormData) => {
@@ -191,7 +203,24 @@ export default function BookForm({ book, onClose }: BookFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="productType">Tipo de Produto</Label>
+              <Select value={form.watch("productType") || "book"} onValueChange={(value) => {
+                form.setValue("productType", value);
+                if (value === "vinyl") {
+                  form.setValue("weight", 5000);
+                }
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="book">Livro</SelectItem>
+                  <SelectItem value="vinyl">Vinil</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label htmlFor="category">Categoria</Label>
               <Select value={form.watch("category") || undefined} onValueChange={(value) => form.setValue("category", value)}>
@@ -211,6 +240,11 @@ export default function BookForm({ book, onClose }: BookFormProps) {
                   <SelectItem value="Infantil">Infantil</SelectItem>
                   <SelectItem value="Juvenil">Juvenil</SelectItem>
                   <SelectItem value="Didático">Didático</SelectItem>
+                  <SelectItem value="Rock">Rock</SelectItem>
+                  <SelectItem value="Pop">Pop</SelectItem>
+                  <SelectItem value="Jazz">Jazz</SelectItem>
+                  <SelectItem value="Clássica">Clássica</SelectItem>
+                  <SelectItem value="MPB">MPB</SelectItem>
                   <SelectItem value="Outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
@@ -221,6 +255,27 @@ export default function BookForm({ book, onClose }: BookFormProps) {
                 id="edition"
                 {...form.register("edition")}
                 placeholder="1ª edição"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="shelf">Estante</Label>
+              <Input
+                id="shelf"
+                {...form.register("shelf")}
+                placeholder="A1, B2, etc."
+              />
+            </div>
+            <div>
+              <Label htmlFor="weight">Peso (gramas)</Label>
+              <Input
+                id="weight"
+                type="number"
+                {...form.register("weight", { valueAsNumber: true })}
+                placeholder={productType === "vinyl" ? "5000 (automático)" : "Peso em gramas"}
+                disabled={productType === "vinyl"}
               />
             </div>
           </div>
