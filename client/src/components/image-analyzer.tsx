@@ -7,11 +7,28 @@ import { Loader2, Camera, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageAnalysisResult } from "@/lib/types";
 
-interface ImageAnalyzerProps {
-  onAnalysisComplete: (result: ImageAnalysisResult) => void;
+interface BookFromImageResult {
+  title: string;
+  author: string;
+  publisher?: string;
+  publishYear?: number;
+  description: string;
+  isbn?: string;
 }
 
-export default function ImageAnalyzer({ onAnalysisComplete }: ImageAnalyzerProps) {
+interface ImageAnalyzerProps {
+  onAnalysisComplete?: (result: ImageAnalysisResult) => void;
+  onBookDataExtracted?: (result: BookFromImageResult) => void;
+  mode?: 'condition' | 'book-data';
+  allowCamera?: boolean;
+}
+
+export default function ImageAnalyzer({ 
+  onAnalysisComplete, 
+  onBookDataExtracted, 
+  mode = 'condition',
+  allowCamera = false 
+}: ImageAnalyzerProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<ImageAnalysisResult | null>(null);
