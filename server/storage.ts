@@ -449,18 +449,21 @@ export class DatabaseStorage implements IStorage {
     const [totalBooksResult] = await db.select({ count: sql<number>`count(*)` }).from(books);
     const totalBooks = totalBooksResult.count;
 
-    // Get today's sales
+    // Get today's sales - use timestamp in milliseconds for SQLite
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const todayTimestamp = today.getTime();
+    const tomorrowTimestamp = tomorrow.getTime();
 
     const [dailySalesResult] = await db
       .select({ sum: sql<number>`coalesce(sum(${sales.totalAmount}), 0)` })
       .from(sales)
       .where(and(
-        sql`${sales.createdAt} >= ${today}`,
-        sql`${sales.createdAt} < ${tomorrow}`
+        sql`${sales.createdAt} >= ${todayTimestamp}`,
+        sql`${sales.createdAt} < ${tomorrowTimestamp}`
       ));
     const dailySales = dailySalesResult.sum;
 
@@ -475,7 +478,7 @@ export class DatabaseStorage implements IStorage {
     const [estanteVirtualResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(inventory)
-      .where(eq(inventory.sentToEstanteVirtual, true));
+      .where(eq(inventory.sentToEstanteVirtual, 1));
     const estanteVirtualCount = estanteVirtualResult.count;
 
     return {

@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { calculateTradeValue } from './tradeCalculator';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || 'placeholder',
 });
 
 interface IdentifiedBook {

@@ -1,31 +1,19 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from "@shared/schema";
+import path from 'path';
 
-// Configure Neon for serverless WebSocket usage with better error handling
-neonConfig.webSocketConstructor = ws;
-neonConfig.poolQueryViaFetch = true;
-neonConfig.fetchConnectionCache = true;
+// Use SQLite for development/migration purposes
+const dbPath = path.join(process.cwd(), 'database.sqlite');
+const sqlite = new Database(dbPath);
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+// Enable foreign key constraints
+sqlite.pragma('foreign_keys = ON');
 
-// Create pool with proper error handling and connection limits
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  max: 3, // Reduce concurrent connections for better stability
-  maxUses: 5000, // Reduce connection reuse
-  maxLifetimeSeconds: 300, // 5 minutes max lifetime for better cleanup
-  idleTimeoutMillis: 30000 // 30 seconds idle timeout
-});
+export const db = drizzle(sqlite, { schema });
 
-// Add connection error handling
-pool.on('error', (err) => {
-  console.error('Database pool error:', err);
-});
-
-export const db = drizzle({ client: pool, schema });
+// Export a placeholder pool for compatibility
+export const pool = {
+  on: () => {},
+  end: () => sqlite.close()
+};

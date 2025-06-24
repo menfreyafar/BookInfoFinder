@@ -1,177 +1,177 @@
-import { pgTable, text, serial, integer, decimal, timestamp, boolean, varchar } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real, blob } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const books = pgTable("books", {
-  id: serial("id").primaryKey(),
-  isbn: varchar("isbn", { length: 20 }).unique(),
+export const books = sqliteTable("books", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  isbn: text("isbn").unique(),
   title: text("title").notNull(),
   author: text("author").notNull(),
   publisher: text("publisher"),
   publishYear: integer("publish_year"),
   edition: text("edition"),
   category: text("category"),
-  productType: varchar("product_type", { length: 20 }).notNull().default("book"), // book, vinyl
+  productType: text("product_type").notNull().default("book"), // book, vinyl
   synopsis: text("synopsis"),
   weight: integer("weight"), // in grams
-  usedPrice: decimal("used_price", { precision: 10, scale: 2 }),
-  newPrice: decimal("new_price", { precision: 10, scale: 2 }),
+  usedPrice: real("used_price"),
+  newPrice: real("new_price"),
   condition: text("condition"),
   coverImage: text("cover_image"),
   shelf: text("shelf"), // estante para organização
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-export const inventory = pgTable("inventory", {
-  id: serial("id").primaryKey(),
+export const inventory = sqliteTable("inventory", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   bookId: integer("book_id").references(() => books.id).notNull(),
   quantity: integer("quantity").notNull().default(0),
   location: text("location"),
-  status: varchar("status", { length: 20 }).notNull().default("available"), // available, reserved, sold
-  sentToEstanteVirtual: boolean("sent_to_estante_virtual").default(false),
+  status: text("status").notNull().default("available"), // available, reserved, sold
+  sentToEstanteVirtual: integer("sent_to_estante_virtual", { mode: 'boolean' }).default(false),
   estanteVirtualId: text("estante_virtual_id"), // ID do livro na Estante Virtual
-  lastSyncDate: timestamp("last_sync_date"), // Data da última sincronização
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  lastSyncDate: integer("last_sync_date", { mode: 'timestamp' }), // Data da última sincronização
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-export const sales = pgTable("sales", {
-  id: serial("id").primaryKey(),
+export const sales = sqliteTable("sales", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   customerName: text("customer_name"),
   customerEmail: text("customer_email"),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: varchar("payment_method", { length: 20 }).notNull(), // cash, card, pix
-  createdAt: timestamp("created_at").defaultNow(),
+  totalAmount: real("total_amount").notNull(),
+  paymentMethod: text("payment_method").notNull(), // cash, card, pix
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  key: varchar("key", { length: 100 }).notNull().unique(),
+export const settings = sqliteTable("settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
   value: text("value"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-export const saleItems = pgTable("sale_items", {
-  id: serial("id").primaryKey(),
+export const saleItems = sqliteTable("sale_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   saleId: integer("sale_id").references(() => sales.id).notNull(),
   bookId: integer("book_id").references(() => books.id).notNull(),
   quantity: integer("quantity").notNull(),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  unitPrice: real("unit_price").notNull(),
+  totalPrice: real("total_price").notNull(),
 });
 
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
+export const categories = sqliteTable("categories", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull().unique(),
   description: text("description"),
 });
 
-export const estanteVirtualOrders = pgTable("estante_virtual_orders", {
-  id: serial("id").primaryKey(),
+export const estanteVirtualOrders = sqliteTable("estante_virtual_orders", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   orderId: text("order_id").notNull().unique(),
   customerName: text("customer_name").notNull(),
   customerAddress: text("customer_address").notNull(),
   customerPhone: text("customer_phone"),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  shippingDeadline: timestamp("shipping_deadline").notNull(), // prazo para postagem
-  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, shipped, delivered
+  totalAmount: real("total_amount").notNull(),
+  shippingDeadline: integer("shipping_deadline", { mode: 'timestamp' }).notNull(), // prazo para postagem
+  status: text("status").notNull().default("pending"), // pending, shipped, delivered
   trackingCode: text("tracking_code"),
-  orderDate: timestamp("order_date").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  orderDate: integer("order_date", { mode: 'timestamp' }).notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-export const estanteVirtualOrderItems = pgTable("estante_virtual_order_items", {
-  id: serial("id").primaryKey(),
+export const estanteVirtualOrderItems = sqliteTable("estante_virtual_order_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   orderId: integer("order_id").references(() => estanteVirtualOrders.id).notNull(),
   bookId: integer("book_id").references(() => books.id).notNull(),
   quantity: integer("quantity").notNull(),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  unitPrice: real("unit_price").notNull(),
+  totalPrice: real("total_price").notNull(),
 });
 
-export const exchanges = pgTable("exchanges", {
-  id: serial("id").primaryKey(),
+export const exchanges = sqliteTable("exchanges", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email"),
   customerPhone: text("customer_phone"),
-  totalTradeValue: decimal("total_trade_value", { precision: 10, scale: 2 }).notNull(),
-  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, completed, cancelled
+  totalTradeValue: real("total_trade_value").notNull(),
+  status: text("status").notNull().default("pending"), // pending, completed, cancelled
   notes: text("notes"),
-  inventoryProcessed: boolean("inventory_processed").default(false), // se o estoque já foi processado
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  inventoryProcessed: integer("inventory_processed", { mode: 'boolean' }).default(false), // se o estoque já foi processado
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-export const exchangeItems = pgTable("exchange_items", {
-  id: serial("id").primaryKey(),
+export const exchangeItems = sqliteTable("exchange_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   exchangeId: integer("exchange_id").references(() => exchanges.id).notNull(),
   bookTitle: text("book_title").notNull(),
   bookAuthor: text("book_author"),
-  estimatedSaleValue: decimal("estimated_sale_value", { precision: 10, scale: 2 }).notNull(),
+  estimatedSaleValue: real("estimated_sale_value").notNull(),
   publishYear: integer("publish_year"),
-  condition: varchar("condition", { length: 20 }).notNull(), // novo, usado
-  isCompleteSeries: boolean("is_complete_series").default(false),
+  condition: text("condition").notNull(), // novo, usado
+  isCompleteSeries: integer("is_complete_series", { mode: 'boolean' }).default(false),
   basePercentage: integer("base_percentage").notNull(),
   valueBonus: integer("value_bonus").default(0),
   yearBonus: integer("year_bonus").default(0),
   finalPercentage: integer("final_percentage").notNull(),
-  calculatedTradeValue: decimal("calculated_trade_value", { precision: 10, scale: 2 }).notNull(),
-  finalTradeValue: decimal("final_trade_value", { precision: 10, scale: 2 }).notNull(),
-  itemType: varchar("item_type", { length: 20 }).notNull().default("received"), // received (recebido) or given (dado)
+  calculatedTradeValue: real("calculated_trade_value").notNull(),
+  finalTradeValue: real("final_trade_value").notNull(),
+  itemType: text("item_type").notNull().default("received"), // received (recebido) or given (dado)
 });
 
-export const exchangeGivenBooks = pgTable("exchange_given_books", {
-  id: serial("id").primaryKey(),
+export const exchangeGivenBooks = sqliteTable("exchange_given_books", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   exchangeId: integer("exchange_id").references(() => exchanges.id).notNull(),
   bookId: integer("book_id").references(() => books.id),
   bookTitle: text("book_title").notNull(),
   bookAuthor: text("book_author"),
-  salePrice: decimal("sale_price", { precision: 10, scale: 2 }).notNull(),
+  salePrice: real("sale_price").notNull(),
   quantity: integer("quantity").notNull().default(1),
   notes: text("notes"),
-  inventoryProcessed: boolean("inventory_processed").default(false), // se foi removido do estoque
+  inventoryProcessed: integer("inventory_processed", { mode: 'boolean' }).default(false), // se foi removido do estoque
 });
 
 // Tabela para livros em pré-cadastro (vindos da análise de foto)
-export const preCatalogBooks = pgTable("pre_catalog_books", {
-  id: serial("id").primaryKey(),
+export const preCatalogBooks = sqliteTable("pre_catalog_books", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   exchangeId: integer("exchange_id").references(() => exchanges.id).notNull(),
   bookTitle: text("book_title").notNull(),
   bookAuthor: text("book_author"),
-  estimatedSaleValue: decimal("estimated_sale_value", { precision: 10, scale: 2 }).notNull(),
+  estimatedSaleValue: real("estimated_sale_value").notNull(),
   publishYear: integer("publish_year"),
-  condition: varchar("condition", { length: 20 }).notNull(), // novo, usado
-  isCompleteSeries: boolean("is_complete_series").default(false),
-  finalTradeValue: decimal("final_trade_value", { precision: 10, scale: 2 }).notNull(),
-  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, processed, rejected
+  condition: text("condition").notNull(), // novo, usado
+  isCompleteSeries: integer("is_complete_series", { mode: 'boolean' }).default(false),
+  finalTradeValue: real("final_trade_value").notNull(),
+  status: text("status").notNull().default("pending"), // pending, processed, rejected
   category: text("category"),
   synopsis: text("synopsis"),
   coverImage: text("cover_image"),
-  isbn: varchar("isbn", { length: 20 }),
+  isbn: text("isbn"),
   publisher: text("publisher"),
   edition: text("edition"),
   weight: integer("weight"),
   shelf: text("shelf"),
   confidence: integer("confidence"), // confiança da análise IA (0-100)
   notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-export const missingBooks = pgTable("missing_books", {
-  id: serial("id").primaryKey(),
+export const missingBooks = sqliteTable("missing_books", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   author: text("author").notNull(),
   isbn: text("isbn"),
   category: text("category").default("Clássico"),
   priority: integer("priority").default(1), // 1 = alta, 2 = média, 3 = baixa
   notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  lastChecked: timestamp("last_checked"),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  lastChecked: integer("last_checked", { mode: 'timestamp' }),
 });
 
 // Relations

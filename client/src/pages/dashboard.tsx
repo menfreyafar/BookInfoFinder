@@ -136,7 +136,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Total de Livros</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {statsLoading ? "..." : stats?.totalBooks.toLocaleString()}
+                    {statsLoading ? "..." : (stats?.totalBooks || 0).toLocaleString()}
                   </p>
                   <p className="text-green-600 text-sm mt-1">
                     <TrendingUp className="w-4 h-4 inline mr-1" />
@@ -176,7 +176,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Estoque Baixo</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {statsLoading ? "..." : stats?.lowStockCount}
+                    {statsLoading ? "..." : (stats?.lowStockCount || 0)}
                   </p>
                   <p className="text-red-600 text-sm mt-1">
                     <AlertTriangle className="w-4 h-4 inline mr-1" />
@@ -196,7 +196,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Na Estante Virtual</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {statsLoading ? "..." : stats?.estanteVirtualCount.toLocaleString()}
+                    {statsLoading ? "..." : (stats?.estanteVirtualCount || 0).toLocaleString()}
                   </p>
                   <p className="text-blue-600 text-sm mt-1">
                     <FolderSync className="w-4 h-4 inline mr-1" />
