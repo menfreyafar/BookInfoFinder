@@ -51,8 +51,8 @@ export default function Sidebar() {
 
   return (
     <div className="w-64 bg-yellow-50 dark:bg-black-800 shadow-lg border-r border-orange-300 dark:border-orange-600 fixed h-full z-20">
-      <div className="p-6 border-b border-orange-300 dark:border-orange-600">
-        <div className="flex items-center space-x-3">
+      <div className="p-4 border-b border-orange-300 dark:border-orange-600">
+        <div className="flex items-center space-x-2">
           {logoUrl && logoUrl.trim() && (
             <img 
               src={logoUrl} 
