@@ -86,14 +86,65 @@ export default function SettingsPage() {
     }
   };
 
+  // Mutation to upload logo image
+  const uploadLogo = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+      
+      const response = await fetch("/api/settings/upload-logo", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao fazer upload da imagem");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setLogoUrl(data.logoUrl);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast({
+        title: "Logo atualizada",
+        description: "A imagem foi enviada e salva com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro no upload",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // For now, we'll just show a placeholder since we'd need to implement image upload
-      toast({
-        title: "Upload de imagem",
-        description: "Funcionalidade de upload será implementada. Por enquanto, use uma URL de imagem.",
-      });
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Arquivo inválido",
+          description: "Por favor, selecione apenas arquivos de imagem.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      uploadLogo.mutate(file);
     }
   };
 
@@ -140,10 +191,18 @@ export default function SettingsPage() {
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                      disabled={uploadLogo.isPending}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-50"
                     />
-                    <Upload className="w-4 h-4 text-muted-foreground" />
+                    {uploadLogo.isPending ? (
+                      <div className="text-sm text-muted-foreground">Enviando...</div>
+                    ) : (
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                    )}
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    Formatos aceitos: PNG, JPG, SVG. Tamanho máximo: 5MB
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -199,8 +258,22 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <Button onClick={handleSaveSettings} disabled={saveSetting.isPending}>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setLogoUrl("");
+                  setBrandName("");
+                  setBrandSubtitle("");
+                }}
+                disabled={saveSetting.isPending || uploadLogo.isPending}
+              >
+                Limpar
+              </Button>
+              <Button 
+                onClick={handleSaveSettings} 
+                disabled={saveSetting.isPending || uploadLogo.isPending}
+              >
                 <Save className="w-4 h-4 mr-2" />
                 {saveSetting.isPending ? "Salvando..." : "Salvar Configurações"}
               </Button>

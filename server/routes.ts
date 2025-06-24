@@ -728,6 +728,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload logo image
+  app.post("/api/settings/upload-logo", upload.single('logo'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhum arquivo enviado" });
+      }
+
+      const file = req.file;
+      
+      // Validate file type
+      if (!file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ error: "Apenas arquivos de imagem são permitidos" });
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        return res.status(400).json({ error: "Arquivo muito grande. Tamanho máximo: 5MB" });
+      }
+
+      // Convert image to base64 data URL
+      const base64 = file.buffer.toString('base64');
+      const dataUrl = `data:${file.mimetype};base64,${base64}`;
+
+      // Save the data URL as logo_url setting
+      const setting = await storage.setSetting('logo_url', dataUrl);
+      
+      res.json({ 
+        success: true, 
+        logoUrl: dataUrl,
+        setting 
+      });
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      res.status(500).json({ error: "Erro ao fazer upload da logo" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
