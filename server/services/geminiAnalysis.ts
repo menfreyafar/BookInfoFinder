@@ -20,8 +20,10 @@ interface IdentifiedBook {
 export async function analyzeExchangePhotoWithGemini(imageBase64: string): Promise<IdentifiedBook[]> {
   if (!process.env.GEMINI_API_KEY) {
     console.log('Gemini API key not configured - using manual mode');
-    return [];
+    throw new Error('Gemini API key not configured');
   }
+
+  console.log('Gemini API key found, proceeding with analysis...');
 
   try {
     const systemPrompt = `Você é um especialista em análise de livros para sebos. Analise esta foto de uma pilha de livros para troca.

@@ -17,18 +17,25 @@ interface IdentifiedBook {
 }
 
 export async function analyzeExchangePhoto(imageBase64: string): Promise<IdentifiedBook[]> {
+  console.log('Starting photo analysis...');
+  console.log('Gemini API available:', !!process.env.GEMINI_API_KEY);
+  console.log('OpenAI API available:', !!process.env.OPENAI_API_KEY);
+  
   // Try Gemini first, then fallback to OpenAI if needed
   if (process.env.GEMINI_API_KEY) {
-    console.log('Using Gemini for photo analysis');
+    console.log('Attempting Gemini analysis...');
     try {
       const result = await analyzeExchangePhotoWithGemini(imageBase64);
       if (result.length > 0) {
-        console.log(`Gemini identified ${result.length} books`);
+        console.log(`Gemini successfully identified ${result.length} books`);
         return result;
       }
+      console.log('Gemini returned 0 books, trying OpenAI...');
     } catch (error) {
-      console.log('Gemini analysis failed, trying OpenAI fallback:', error);
+      console.log('Gemini analysis failed:', error.message);
     }
+  } else {
+    console.log('Gemini API key not available');
   }
 
   // Fallback to OpenAI if Gemini is not available or failed
