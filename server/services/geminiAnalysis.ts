@@ -69,7 +69,7 @@ Seja conservador nas estimativas de preço e realista na identificação. Se nã
     ];
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-flash", // Use flash model for better quota management
       contents: contents,
       config: {
         responseMimeType: "application/json",

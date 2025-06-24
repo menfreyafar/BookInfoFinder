@@ -29,7 +29,8 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ 80+ títulos essenciais incluindo literatura brasileira, estrangeira, filosofia e infantil
 
 ### 2025-06-24 - Sistema de Trocas Aprimorado Implementado
-- ✅ Sistema de trocas com análise de foto implementado (modo manual disponível)
+- ✅ Sistema de trocas com análise de foto implementado (Gemini + OpenAI)
+- ✅ Modo manual robusto para quando APIs não estão disponíveis
 - ✅ Campos para inserir livros dados pelo cliente na troca
 - ✅ Livros da foto automaticamente enviados para pré-cadastro
 - ✅ Processamento automático de estoque remove livros dados do inventário
@@ -37,7 +38,7 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ Separação visual entre livros recebidos e dados nas trocas
 - ✅ Banco de dados estruturado com tabelas de exchange, pre_catalog_books
 - ✅ API completa para gerenciamento de trocas e pré-cadastros
-- ✅ Workflow funcional com todas as dependências instaladas
+- ✅ Sistema funcional com fallback para modo manual quando necessário
 
 ### Database Schema Updates
 - Tabela `exchanges`: registro de trocas

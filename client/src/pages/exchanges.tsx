@@ -377,24 +377,22 @@ export default function Exchanges() {
                       Arquivo selecionado: {selectedFile.name}
                     </p>
                   )}
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>Análise de foto:</strong> O sistema pode analisar fotos para identificar livros 
-                      e avaliar seu estado físico. Se a análise automática não estiver disponível, 
-                      use o modo manual abaixo.
+                  <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <p className="text-sm text-orange-800">
+                      <strong>Análise automática temporariamente indisponível</strong> devido a limites de quota da API. 
+                      Use o modo manual para avaliar os livros baseado na sua experiência visual da foto.
                     </p>
                     <Button
                       type="button"
-                      variant="outline"
-                      className="mt-2"
+                      className="mt-2 bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => setPhotoAnalysis({
                         books: [],
                         totalTradeValue: 0,
                         bookCount: 0,
-                        explanation: "Modo manual - adicione os livros dados pelo cliente abaixo"
+                        explanation: "Modo manual ativo - avalie os livros da foto e adicione manualmente abaixo com base no estado físico observado"
                       })}
                     >
-                      Criar Troca Manual
+                      Continuar com Avaliação Manual
                     </Button>
                   </div>
                 </div>
