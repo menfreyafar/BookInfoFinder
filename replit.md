@@ -153,6 +153,17 @@ The application uses a relational database structure with the following core ent
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
+- June 24, 2025. Bidirectional synchronization with Estante Virtual
+  - **Bidirectional Sync**: Implemented complete synchronization between local inventory and Estante Virtual
+  - **Local Sales Impact**: When books are sold locally, they are automatically removed/updated in Estante Virtual
+  - **Estante Virtual Sales Impact**: When orders come from Estante Virtual, local inventory is automatically reduced
+  - **Individual Book Upload**: All books are now uploaded individually via API (not spreadsheet) to Estante Virtual
+  - **Inventory Management**: Added automatic quantity updates and book removal when stock reaches zero
+  - **Manual Sync Controls**: Created comprehensive sync interface for individual books and bulk operations
+  - **Real-time Status**: Books now show Estante Virtual status in catalog with sync controls
+  - **Database Enhancement**: Added lastSyncDate field to track synchronization timestamps
+  - **Error Handling**: Robust error handling ensures sales don't fail if Estante Virtual sync fails
+
 - June 24, 2025. Settings system implementation
   - **Logo Customization**: Added complete settings page with logo upload functionality
   - **Brand Management**: Users can now customize logo URL, brand name, and subtitle through settings

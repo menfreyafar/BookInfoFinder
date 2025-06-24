@@ -151,6 +151,174 @@ export class EstanteVirtualService {
   }
 
   // Upload single book to Estante Virtual (SAFE INDIVIDUAL UPLOAD)
+  // Upload individual book via API (not spreadsheet)
+  async uploadBookIndividually(book: BookWithInventory): Promise<{ success: boolean; message: string; bookId?: string }> {
+    if (!this.sessionToken) {
+      const loginSuccess = await this.login();
+      if (!loginSuccess) {
+        return { success: false, message: "Falha no login na Estante Virtual" };
+      }
+    }
+
+    try {
+      const bookData = this.formatBookForEstanteVirtual(book);
+      
+      // Step 1: Get the add book page to extract form tokens
+      const addPageResponse = await fetch("https://painel.estantevirtual.com.br/acervo/editar", {
+        method: "GET",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Cookie": this.sessionToken,
+          "Referer": "https://painel.estantevirtual.com.br/acervo"
+        }
+      });
+
+      if (!addPageResponse.ok) {
+        return { success: false, message: "Erro ao acessar página de cadastro" };
+      }
+
+      const pageHtml = await addPageResponse.text();
+      const csrfMatch = pageHtml.match(/<input[^>]*name="[^"]*token[^"]*"[^>]*value="([^"]+)"/i);
+      const csrfToken = csrfMatch ? csrfMatch[1] : null;
+
+      // Step 2: Submit book data via form
+      const formData = new URLSearchParams();
+      formData.append('isbn', bookData.isbn);
+      formData.append('titulo', bookData.titulo);
+      formData.append('autor', bookData.autor);
+      formData.append('editora', bookData.editora);
+      formData.append('ano', bookData.ano);
+      formData.append('edicao', bookData.edicao);
+      formData.append('categoria', bookData.categoria);
+      formData.append('preco', bookData.preco);
+      formData.append('quantidade', bookData.quantidade);
+      formData.append('condicao', bookData.condicao);
+      formData.append('descricao', bookData.descricao);
+      formData.append('peso', bookData.peso);
+      
+      if (csrfToken) {
+        formData.append('_token', csrfToken);
+      }
+
+      const submitResponse = await fetch("https://painel.estantevirtual.com.br/acervo/editar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Cookie": this.sessionToken,
+          "Referer": "https://painel.estantevirtual.com.br/acervo/editar"
+        },
+        body: formData
+      });
+
+      if (submitResponse.ok) {
+        // Extract book ID from response if available
+        const responseText = await submitResponse.text();
+        const bookIdMatch = responseText.match(/livro[\/\-](\d+)/i);
+        const estanteBookId = bookIdMatch ? bookIdMatch[1] : Date.now().toString();
+
+        return { 
+          success: true, 
+          message: "Livro cadastrado com sucesso na Estante Virtual",
+          bookId: estanteBookId
+        };
+      } else {
+        return { success: false, message: `Erro ao cadastrar livro: ${submitResponse.status}` };
+      }
+
+    } catch (error) {
+      console.error("Erro ao cadastrar livro individualmente:", error);
+      return { success: false, message: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}` };
+    }
+  }
+
+  // Update book quantity in Estante Virtual
+  async updateBookQuantity(estanteBookId: string, newQuantity: number): Promise<{ success: boolean; message: string }> {
+    if (!this.sessionToken) {
+      const loginSuccess = await this.login();
+      if (!loginSuccess) {
+        return { success: false, message: "Falha no login na Estante Virtual" };
+      }
+    }
+
+    try {
+      // Get book edit page
+      const editPageResponse = await fetch(`https://painel.estantevirtual.com.br/acervo/editar/${estanteBookId}`, {
+        method: "GET",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Cookie": this.sessionToken
+        }
+      });
+
+      if (!editPageResponse.ok) {
+        return { success: false, message: "Erro ao acessar página de edição do livro" };
+      }
+
+      const pageHtml = await editPageResponse.text();
+      const csrfMatch = pageHtml.match(/<input[^>]*name="[^"]*token[^"]*"[^>]*value="([^"]+)"/i);
+      const csrfToken = csrfMatch ? csrfMatch[1] : null;
+
+      // Update quantity
+      const formData = new URLSearchParams();
+      formData.append('quantidade', newQuantity.toString());
+      if (csrfToken) {
+        formData.append('_token', csrfToken);
+      }
+
+      const updateResponse = await fetch(`https://painel.estantevirtual.com.br/acervo/editar/${estanteBookId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Cookie": this.sessionToken
+        },
+        body: formData
+      });
+
+      if (updateResponse.ok) {
+        return { success: true, message: `Quantidade atualizada para ${newQuantity}` };
+      } else {
+        return { success: false, message: `Erro ao atualizar quantidade: ${updateResponse.status}` };
+      }
+
+    } catch (error) {
+      console.error("Erro ao atualizar quantidade:", error);
+      return { success: false, message: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}` };
+    }
+  }
+
+  // Remove book from Estante Virtual
+  async removeBook(estanteBookId: string): Promise<{ success: boolean; message: string }> {
+    if (!this.sessionToken) {
+      const loginSuccess = await this.login();
+      if (!loginSuccess) {
+        return { success: false, message: "Falha no login na Estante Virtual" };
+      }
+    }
+
+    try {
+      const deleteResponse = await fetch(`https://painel.estantevirtual.com.br/acervo/excluir/${estanteBookId}`, {
+        method: "POST",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Cookie": this.sessionToken,
+          "Referer": "https://painel.estantevirtual.com.br/acervo"
+        }
+      });
+
+      if (deleteResponse.ok) {
+        return { success: true, message: "Livro removido da Estante Virtual" };
+      } else {
+        return { success: false, message: `Erro ao remover livro: ${deleteResponse.status}` };
+      }
+
+    } catch (error) {
+      console.error("Erro ao remover livro:", error);
+      return { success: false, message: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}` };
+    }
+  }
+
   async uploadBook(book: BookWithInventory): Promise<{ success: boolean; message: string; bookId?: string }> {
     if (!this.sessionToken) {
       const loginSuccess = await this.login();

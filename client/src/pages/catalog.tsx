@@ -15,11 +15,13 @@ import {
   Filter,
   SortAsc,
   SortDesc,
-  Library
+  Library,
+  Globe
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import BookForm from "@/components/book-form";
+import EstanteVirtualSync from "@/components/estante-virtual-sync";
 import { BookWithInventory } from "@shared/schema";
 
 function TopBar() {
@@ -303,27 +305,50 @@ export default function Catalog() {
                     )}
                   </div>
 
+                  {/* Estante Virtual Status */}
+                  {book.inventory?.sentToEstanteVirtual && (
+                    <div className="flex items-center gap-1 text-xs text-blue-600 mb-2">
+                      <Globe className="w-3 h-3" />
+                      <span>Na Estante Virtual</span>
+                    </div>
+                  )}
+
                   {/* Actions */}
-                  <div className="mt-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => {
-                        setSelectedBook(book);
-                        setShowBookForm(true);
-                      }}
-                    >
-                      <Edit className="w-3 h-3 mr-1" />
-                      Editar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      onClick={() => handleDelete(book)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedBook(book);
+                          setShowBookForm(true);
+                        }}
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Editar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => handleDelete(book)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    
+                    {/* Estante Virtual Sync Controls */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <EstanteVirtualSync 
+                        bookId={book.id}
+                        bookTitle={book.title}
+                        isInEstanteVirtual={book.inventory?.sentToEstanteVirtual || false}
+                        onSyncComplete={() => {
+                          // Refresh book data after sync
+                          queryClient.invalidateQueries({ queryKey: ['/api/books'] });
+                        }}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -447,6 +447,11 @@ export default function Export() {
           </CardContent>
         </Card>
 
+        {/* Estante Virtual Sync Section */}
+        <div className="mb-8">
+          <EstanteVirtualSync />
+        </div>
+
         {/* New Export Options */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Catalog PDF Export */}

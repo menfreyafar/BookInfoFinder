@@ -240,13 +240,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const newSale = await storage.createSale(validatedSale, validatedItems);
       
-      // Update inventory quantities
+      // Update inventory quantities and sync with Estante Virtual
       for (const item of validatedItems) {
         const inventory = await storage.getInventory(item.bookId);
         if (inventory) {
+          const newQuantity = Math.max(0, inventory.quantity - item.quantity);
+          
           await storage.updateInventory(inventory.id, {
-            quantity: Math.max(0, inventory.quantity - item.quantity)
+            quantity: newQuantity
           });
+          
+          // Sync with Estante Virtual if book is listed there
+          if (inventory.estanteVirtualId && inventory.sentToEstanteVirtual) {
+            try {
+              if (newQuantity === 0) {
+                // Remove book from Estante Virtual if no stock left
+                const removeResult = await estanteVirtualService.removeBook(inventory.estanteVirtualId);
+                if (removeResult.success) {
+                  console.log(`Livro removido da Estante Virtual: ${inventory.estanteVirtualId}`);
+                  await storage.updateInventory(inventory.id, {
+                    sentToEstanteVirtual: false,
+                    estanteVirtualId: null
+                  });
+                }
+              } else {
+                // Update quantity in Estante Virtual
+                const updateResult = await estanteVirtualService.updateBookQuantity(inventory.estanteVirtualId, newQuantity);
+                if (updateResult.success) {
+                  console.log(`Quantidade atualizada na Estante Virtual: ${inventory.estanteVirtualId} - ${newQuantity} unidades`);
+                }
+              }
+            } catch (syncError) {
+              console.error(`Erro ao sincronizar com Estante Virtual para livro ${item.bookId}:`, syncError);
+              // Don't fail the sale if Estante Virtual sync fails
+            }
+          }
         }
       }
       
@@ -471,7 +499,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         inventory: await storage.getInventory(bookId)
       };
 
-      const result = await estanteVirtualService.uploadBook(bookWithInventory);
+      // Use individual upload method (via API, not spreadsheet)
+      const result = await estanteVirtualService.uploadBookIndividually(bookWithInventory);
       
       if (result.success && result.bookId) {
         // Mark book as sent to Estante Virtual
@@ -498,37 +527,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Lista de IDs de livros é obrigatória" });
       }
 
-      const books = [];
-      for (const bookId of bookIds) {
-        const book = await storage.getBook(bookId);
-        if (book) {
-          const bookWithInventory = {
-            ...book,
-            inventory: await storage.getInventory(bookId)
-          };
-          books.push(bookWithInventory);
-        }
-      }
-
-      const result = await estanteVirtualService.uploadBooks(books);
+      const results = [];
       
-      // Update inventory for successful uploads
-      for (const uploadResult of result.results) {
-        if (uploadResult.success && uploadResult.bookId) {
-          const book = books.find(b => b.title === uploadResult.book);
-          if (book && book.inventory) {
-            await storage.updateInventory(book.inventory.id, {
-              sentToEstanteVirtual: true,
-              estanteVirtualId: uploadResult.bookId
+      // Upload each book individually via API (not spreadsheet)
+      for (const bookId of bookIds) {
+        try {
+          const book = await storage.getBook(bookId);
+          if (book) {
+            const inventory = await storage.getInventory(bookId);
+            const bookWithInventory = { ...book, inventory };
+            
+            const result = await estanteVirtualService.uploadBookIndividually(bookWithInventory);
+            
+            if (result.success && result.bookId) {
+              // Update inventory to mark as sent to Estante Virtual
+              if (inventory) {
+                await storage.updateInventory(inventory.id, {
+                  sentToEstanteVirtual: true,
+                  estanteVirtualId: result.bookId
+                });
+              }
+            }
+            
+            results.push({
+              bookId,
+              book: book.title,
+              success: result.success,
+              message: result.message,
+              estanteBookId: result.bookId
             });
           }
+        } catch (error) {
+          results.push({
+            bookId,
+            success: false,
+            message: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+          });
         }
       }
 
-      res.json(result);
+      const successCount = results.filter(r => r.success).length;
+      
+      res.json({
+        success: successCount > 0,
+        message: `${successCount} de ${bookIds.length} livros enviados com sucesso`,
+        results,
+        successCount,
+        totalCount: bookIds.length
+      });
     } catch (error) {
       console.error("Error uploading books to Estante Virtual:", error);
       res.status(500).json({ error: "Erro ao enviar livros para Estante Virtual" });
+    }
+  });
+
+  // Manual sync with Estante Virtual
+  app.post("/api/estante-virtual/sync-inventory", async (req, res) => {
+    try {
+      const { bookId } = req.body;
+      
+      if (bookId) {
+        // Sync specific book
+        const inventory = await storage.getInventory(bookId);
+        if (!inventory?.estanteVirtualId || !inventory.sentToEstanteVirtual) {
+          return res.status(400).json({ error: "Livro não está na Estante Virtual" });
+        }
+
+        const updateResult = await estanteVirtualService.updateBookQuantity(
+          inventory.estanteVirtualId, 
+          inventory.quantity
+        );
+
+        if (updateResult.success) {
+          await storage.updateInventory(inventory.id, {
+            lastSyncDate: new Date()
+          });
+        }
+
+        res.json(updateResult);
+      } else {
+        // Sync all books that are in Estante Virtual
+        const allBooks = await storage.getAllBooks();
+        const syncResults = [];
+
+        for (const book of allBooks) {
+          if (book.inventory?.estanteVirtualId && book.inventory.sentToEstanteVirtual) {
+            try {
+              const updateResult = await estanteVirtualService.updateBookQuantity(
+                book.inventory.estanteVirtualId,
+                book.inventory.quantity
+              );
+
+              if (updateResult.success) {
+                await storage.updateInventory(book.inventory.id, {
+                  lastSyncDate: new Date()
+                });
+              }
+
+              syncResults.push({
+                bookId: book.id,
+                title: book.title,
+                success: updateResult.success,
+                message: updateResult.message
+              });
+            } catch (error) {
+              syncResults.push({
+                bookId: book.id,
+                title: book.title,
+                success: false,
+                message: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+              });
+            }
+          }
+        }
+
+        const successCount = syncResults.filter(r => r.success).length;
+        res.json({
+          success: successCount > 0,
+          message: `${successCount} de ${syncResults.length} livros sincronizados`,
+          results: syncResults
+        });
+      }
+    } catch (error) {
+      console.error("Error syncing inventory:", error);
+      res.status(500).json({ error: "Erro ao sincronizar estoque" });
+    }
+  });
+
+  // Remove book from Estante Virtual
+  app.delete("/api/estante-virtual/book/:bookId", async (req, res) => {
+    try {
+      const bookId = parseInt(req.params.bookId);
+      const inventory = await storage.getInventory(bookId);
+      
+      if (!inventory?.estanteVirtualId || !inventory.sentToEstanteVirtual) {
+        return res.status(400).json({ error: "Livro não está na Estante Virtual" });
+      }
+
+      const removeResult = await estanteVirtualService.removeBook(inventory.estanteVirtualId);
+      
+      if (removeResult.success) {
+        await storage.updateInventory(inventory.id, {
+          sentToEstanteVirtual: false,
+          estanteVirtualId: null,
+          lastSyncDate: new Date()
+        });
+      }
+
+      res.json(removeResult);
+    } catch (error) {
+      console.error("Error removing book from Estante Virtual:", error);
+      res.status(500).json({ error: "Erro ao remover livro da Estante Virtual" });
     }
   });
 

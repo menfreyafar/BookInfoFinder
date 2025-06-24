@@ -106,6 +106,26 @@ class OrderImporterService {
             totalPrice: item.totalPrice.toString()
           })));
 
+          // Update local inventory when Estante Virtual order is imported
+          for (const item of orderData.items) {
+            try {
+              const book = await storage.getBook(item.bookId);
+              if (book) {
+                const inventory = await storage.getInventory(item.bookId);
+                if (inventory && inventory.quantity >= item.quantity) {
+                  await storage.updateInventory(inventory.id, {
+                    quantity: inventory.quantity - item.quantity
+                  });
+                  console.log(`Estoque atualizado: ${book.title} - Reduzido ${item.quantity} unidades`);
+                } else {
+                  console.warn(`Estoque insuficiente para ${book.title}: ${inventory?.quantity || 0} disponível, ${item.quantity} solicitado`);
+                }
+              }
+            } catch (error) {
+              console.error(`Erro ao atualizar estoque para item ${item.bookId}:`, error);
+            }
+          }
+
           imported++;
           console.log(`Pedido ${orderData.orderId} importado com sucesso`);
         } catch (error) {
