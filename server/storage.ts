@@ -447,7 +447,15 @@ export class DatabaseStorage implements IStorage {
 
   // Missing Books methods
   async getAllMissingBooks() {
-    return await db.select().from(missingBooks).orderBy(missingBooks.priority, missingBooks.title);
+    try {
+      // Use raw SQL to avoid Drizzle schema issues
+      const sqlite = (db as any)._.session.client;
+      const result = sqlite.prepare('SELECT * FROM missing_books ORDER BY priority, title').all();
+      return result;
+    } catch (error) {
+      console.error('Error fetching missing books:', error);
+      return [];
+    }
   }
 
   async createMissingBook(data: any) {

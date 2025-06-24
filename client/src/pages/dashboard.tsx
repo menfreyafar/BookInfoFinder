@@ -34,8 +34,16 @@ interface MissingBook {
 function MissingBooksAlert() {
   const { data: missingBooks = [] } = useQuery<MissingBook[]>({
     queryKey: ['/api/missing-books'],
-    queryFn: () => fetch('/api/missing-books').then(res => res.json()),
-    select: (data) => data.slice(0, 5), // Show only first 5
+    queryFn: async () => {
+      const res = await fetch('/api/missing-books');
+      if (!res.ok) {
+        console.error('Failed to fetch missing books');
+        return [];
+      }
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+    select: (data) => Array.isArray(data) ? data.slice(0, 5) : [], // Show only first 5
   });
 
   if (missingBooks.length === 0) {

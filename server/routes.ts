@@ -456,20 +456,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Missing Books API
-  app.get("/api/missing-books", async (req, res) => {
+  app.get("/api/missing-books", (req, res) => {
+    const Database = require('better-sqlite3');
+    const path = require('path');
+    
+    let sqlite;
     try {
-      const missingBooks = await storage.getAllMissingBooks();
+      const dbPath = path.join(process.cwd(), 'database.sqlite');
+      sqlite = new Database(dbPath);
+      
+      const missingBooks = sqlite.prepare('SELECT * FROM missing_books ORDER BY priority, title').all();
+      
       res.json(missingBooks);
     } catch (error) {
       console.error("Error fetching missing books:", error);
       res.status(500).json({ error: "Erro ao buscar livros em falta" });
+    } finally {
+      if (sqlite) {
+        sqlite.close();
+      }
     }
   });
 
   app.post("/api/missing-books", async (req, res) => {
     try {
-      const missingBook = await storage.createMissingBook(req.body);
-      res.json(missingBook);
+      const Database = require('better-sqlite3');
+      const dbPath = require('path').join(process.cwd(), 'database.sqlite');
+      const sqlite = new Database(dbPath);
+      
+      const { title, author, isbn, category, priority, notes } = req.body;
+      const stmt = sqlite.prepare(`
+        INSERT INTO missing_books (title, author, isbn, category, priority, notes, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      const result = stmt.run(title, author, isbn, category || 'Clássico', priority || 1, notes, Date.now());
+      
+      const newBook = sqlite.prepare('SELECT * FROM missing_books WHERE id = ?').get(result.lastInsertRowid);
+      sqlite.close();
+      
+      res.json(newBook);
     } catch (error) {
       console.error("Error creating missing book:", error);
       res.status(500).json({ error: "Erro ao criar livro em falta" });

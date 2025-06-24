@@ -57,7 +57,14 @@ export default function MissingBooks() {
   // Fetch missing books
   const { data: missingBooks = [], isLoading } = useQuery<MissingBook[]>({
     queryKey: ['/api/missing-books'],
-    queryFn: () => fetch('/api/missing-books').then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/missing-books');
+      if (!res.ok) {
+        throw new Error('Failed to fetch missing books');
+      }
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
   });
 
   // Create missing book mutation
@@ -352,8 +359,9 @@ export default function MissingBooks() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {missingBooks.map((book) => (
+        {!isLoading && missingBooks && missingBooks.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {missingBooks.map((book) => (
             <Card key={book.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -415,10 +423,19 @@ export default function MissingBooks() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {missingBooks.length === 0 && (
+        {isLoading && (
+          <div className="text-center py-12">
+            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Carregando...</h3>
+            <p className="text-gray-600">Buscando livros em falta...</p>
+          </div>
+        )}
+
+        {!isLoading && (!missingBooks || missingBooks.length === 0) && (
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum livro em falta</h3>
