@@ -258,12 +258,11 @@ export default function MissingBooks() {
           
           <div className="flex gap-3">
             <Button
-              onClick={handleRefreshList}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/missing-books'] })}
               variant="outline"
-              disabled={refreshMutation.isPending}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {refreshMutation.isPending ? "Atualizando..." : "Atualizar Lista"}
+              Atualizar Lista
             </Button>
             
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

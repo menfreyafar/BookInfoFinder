@@ -29,13 +29,13 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ 80+ títulos essenciais incluindo literatura brasileira, estrangeira, filosofia e infantil
 
 ### 2025-01-24 - Sistema de Alertas de Livros Clássicos Corrigido
-- ✅ Limpeza da tabela missing_books (removidos registros incorretos)
+- ✅ Limpeza completa do banco de dados (removidos livros e inventário incorretos)
 - ✅ Implementada lógica correta de alertas: apenas livros da lista com estoque < 1
-- ✅ Lista de clássicos extraída do arquivo fornecido pelo usuário (sem duplicatas)
-- ✅ 60+ títulos essenciais incluindo literatura brasileira, estrangeira, filosofia e infantil
+- ✅ Lista de clássicos extraída do arquivo fornecido pelo usuário (59 títulos únicos)
 - ✅ Sistema mostra dinamicamente apenas livros em falta no estoque
 - ✅ Interface atualizada para mostrar estoque atual de cada livro
 - ✅ Dashboard e página de "Livros em Falta" funcionando corretamente
+- ✅ Banco de dados limpo - inventário agora mostra apenas livros reais
 - ⚠️ OpenAI API necessita créditos para análise de fotos em trocas
 
 ### Database Schema Updates
