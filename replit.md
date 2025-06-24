@@ -19,6 +19,15 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - **File Uploads**: Multer
 
 ## Recent Changes
+### 2025-01-24 - Migração para Replit Completa e Lista de Clássicos Atualizada
+- ✅ Migração completa do projeto para ambiente Replit
+- ✅ Banco de dados convertido de PostgreSQL para SQLite para compatibilidade
+- ✅ Todas as dependências instaladas e configuradas
+- ✅ Aplicação rodando com sucesso na porta 5000
+- ✅ Lista completa de livros clássicos adicionada aos alertas de estoque
+- ✅ Sistema configurado para manter sempre ao menos 1 exemplar de cada clássico
+- ✅ 80+ títulos essenciais incluindo literatura brasileira, estrangeira, filosofia e infantil
+
 ### 2025-01-24 - Sistema de Trocas e Livros em Falta Implementados
 - ✅ Criada nova aba "Trocas" no menu principal
 - ✅ Implementada análise automática de foto de pilhas de livros usando OpenAI Vision
