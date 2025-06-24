@@ -73,6 +73,37 @@ export default function EstanteVirtualSync({
     }
   });
 
+  // Import catalog
+  const importCatalogMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/estante-virtual/import-catalog', {
+        method: 'POST'
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: data.success ? "Sucesso" : "Aviso",
+        description: data.message,
+        variant: data.success ? "default" : "destructive"
+      });
+      
+      if (data.errors && data.errors.length > 0) {
+        console.log("Erros durante importação:", data.errors);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/books'] });
+      onSyncComplete?.();
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao importar catálogo da Estante Virtual",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Sync inventory
   const syncInventoryMutation = useMutation({
     mutationFn: async (data: { bookId?: number }) => {
@@ -136,7 +167,8 @@ export default function EstanteVirtualSync({
 
   const isLoading = uploadBookMutation.isPending || 
                    syncInventoryMutation.isPending || 
-                   removeBookMutation.isPending;
+                   removeBookMutation.isPending ||
+                   importCatalogMutation.isPending;
 
   if (bookId) {
     // Individual book controls
@@ -193,14 +225,23 @@ export default function EstanteVirtualSync({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             onClick={() => syncInventoryMutation.mutate({})}
             disabled={isLoading}
             className="gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            Sincronizar Todos os Livros
+            Sincronizar Estoque
+          </Button>
+          <Button
+            onClick={() => importCatalogMutation.mutate()}
+            disabled={isLoading}
+            variant="outline"
+            className="gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Importar Catálogo da EV
           </Button>
         </div>
 

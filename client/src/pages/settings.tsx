@@ -1,484 +1,333 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Settings as SettingsIcon, 
+  Upload, 
+  Image, 
+  Globe, 
+  CheckCircle, 
+  XCircle,
+  AlertCircle
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Save, Upload, Image, Link, Shield } from "lucide-react";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 
-interface Setting {
-  id: number;
-  key: string;
-  value: string;
-  createdAt: string;
-  updatedAt: string;
+function TopBar() {
+  return (
+    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Configurações</h2>
+          <p className="text-gray-600">Personalize sua loja e configurações da Estante Virtual</p>
+        </div>
+      </div>
+    </header>
+  );
 }
 
-export default function SettingsPage() {
-  const [logoUrl, setLogoUrl] = useState("");
+export default function Settings() {
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [brandName, setBrandName] = useState("");
   const [brandSubtitle, setBrandSubtitle] = useState("");
   const [estanteEmail, setEstanteEmail] = useState("");
   const [estantePassword, setEstantePassword] = useState("");
-  const [estanteSellerId, setEstanteSellerId] = useState("");
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<any>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all settings
-  const { data: settings = [] } = useQuery<Setting[]>({
-    queryKey: ["settings"],
-    queryFn: async () => {
-      const response = await fetch("/api/settings");
-      if (!response.ok) throw new Error("Erro ao carregar configurações");
-      return response.json();
-    },
+  // Fetch current settings
+  const { data: settings } = useQuery({
+    queryKey: ['/api/settings'],
+    queryFn: getQueryFn({ on401: "throw" }),
+    select: (data) => {
+      const settingsMap = data.reduce((acc: any, setting: any) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {});
+      
+      // Set form values from settings
+      if (settingsMap.brand_name && brandName === "") setBrandName(settingsMap.brand_name);
+      if (settingsMap.brand_subtitle && brandSubtitle === "") setBrandSubtitle(settingsMap.brand_subtitle);
+      if (settingsMap.estante_email && estanteEmail === "") setEstanteEmail(settingsMap.estante_email);
+      
+      return settingsMap;
+    }
   });
 
-  // Update settings values when data loads
-  useEffect(() => {
-    const logoSetting = settings.find(s => s.key === "logo_url");
-    const brandSetting = settings.find(s => s.key === "brand_name");
-    const subtitleSetting = settings.find(s => s.key === "brand_subtitle");
-    const emailSetting = settings.find(s => s.key === "estante_email");
-    const passwordSetting = settings.find(s => s.key === "estante_password");
-    const sellerSetting = settings.find(s => s.key === "estante_seller_id");
-    
-    if (logoSetting) setLogoUrl(logoSetting.value);
-    if (brandSetting) setBrandName(brandSetting.value);
-    if (subtitleSetting) setBrandSubtitle(subtitleSetting.value);
-    if (emailSetting) setEstanteEmail(emailSetting.value);
-    if (passwordSetting) setEstantePassword(passwordSetting.value);
-    if (sellerSetting) setEstanteSellerId(sellerSetting.value);
-  }, [settings]);
-
-  // Mutation to save settings
-  const saveSetting = useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      const response = await fetch("/api/settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ key, value }),
+  // Upload logo mutation
+  const logoUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+      
+      const response = await fetch('/api/settings/upload-logo', {
+        method: 'POST',
+        body: formData
       });
-      if (!response.ok) throw new Error("Erro ao salvar configuração");
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
       toast({
-        title: "Configuração salva",
-        description: "As alterações foram aplicadas com sucesso.",
+        title: "Sucesso",
+        description: "Logo atualizada com sucesso"
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
     onError: () => {
       toast({
         title: "Erro",
-        description: "Não foi possível salvar a configuração.",
-        variant: "destructive",
+        description: "Erro ao fazer upload da logo",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  const handleSaveSettings = async () => {
-    try {
-      await Promise.all([
-        saveSetting.mutateAsync({ key: "logo_url", value: logoUrl }),
-        saveSetting.mutateAsync({ key: "brand_name", value: brandName }),
-        saveSetting.mutateAsync({ key: "brand_subtitle", value: brandSubtitle }),
-        saveSetting.mutateAsync({ key: "estante_email", value: estanteEmail }),
-        saveSetting.mutateAsync({ key: "estante_password", value: estantePassword }),
-        saveSetting.mutateAsync({ key: "estante_seller_id", value: estanteSellerId }),
-      ]);
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (settings: { key: string; value: string }[]) => {
+      const promises = settings.map(setting =>
+        apiRequest('/api/settings', {
+          method: 'POST',
+          body: JSON.stringify(setting),
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
       
-      // Test connection after saving credentials
-      if (estanteEmail && estantePassword) {
-        testConnection.mutate();
-      }
-    } catch (error) {
-      console.error("Error saving settings:", error);
-    }
-  };
-
-  // Mutation to test Estante Virtual connection
-  const testConnection = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/estante-virtual/test-connection", {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Erro ao testar conexão");
-      return response.json();
+      await Promise.all(promises);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
-        title: data.success ? "Configuração válida" : "Erro na configuração",
-        description: data.message,
-        variant: data.success ? "default" : "destructive",
+        title: "Sucesso",
+        description: "Configurações salvas com sucesso"
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
     onError: () => {
       toast({
-        title: "Erro de conexão",
-        description: "Não foi possível testar a conexão com a Estante Virtual.",
-        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao salvar configurações",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  const handleTestConnection = () => {
-    if (!estanteEmail || !estantePassword) {
-      toast({
-        title: "Credenciais necessárias",
-        description: "Por favor, preencha email e senha antes de testar a conexão.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Save and test
-    handleSaveSettings().then(() => {
-      if (!testConnection.isPending) {
-        testConnection.mutate();
-      }
-    });
-  };
-
-  const handleSaveWithoutTest = async () => {
-    try {
-      await Promise.all([
-        saveSetting.mutateAsync({ key: "logo_url", value: logoUrl }),
-        saveSetting.mutateAsync({ key: "brand_name", value: brandName }),
-        saveSetting.mutateAsync({ key: "brand_subtitle", value: brandSubtitle }),
-        saveSetting.mutateAsync({ key: "estante_email", value: estanteEmail }),
-        saveSetting.mutateAsync({ key: "estante_password", value: estantePassword }),
-        saveSetting.mutateAsync({ key: "estante_seller_id", value: estanteSellerId }),
-      ]);
-    } catch (error) {
-      console.error("Error saving settings:", error);
-    }
-  };
-
-  // Mutation to upload logo image
-  const uploadLogo = useMutation({
-    mutationFn: async (file: File) => {
-      try {
-        const formData = new FormData();
-        formData.append('logo', file);
-        
-        console.log("Sending request to upload logo...");
-        const response = await fetch("/api/settings/upload-logo", {
-          method: "POST",
-          body: formData,
-          headers: {
-            // Don't set Content-Type, let browser set it with boundary for multipart
-          },
-        });
-        console.log("Response status:", response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorMessage = "Erro ao fazer upload da imagem";
-          
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            errorMessage = errorText || errorMessage;
-          }
-          
-          throw new Error(errorMessage);
-        }
-        
-        return response.json();
-      } catch (error) {
-        console.error("Upload error:", error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      setLogoUrl(data.logoUrl);
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-      toast({
-        title: "Logo atualizada",
-        description: "A imagem foi enviada e salva com sucesso.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro no upload",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log("File selected:", file.name, file.type, file.size);
-      
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Arquivo inválido",
-          description: "Por favor, selecione apenas arquivos de imagem.",
-          variant: "destructive",
-        });
-        return;
-      }
+      setLogoFile(file);
+      logoUploadMutation.mutate(file);
+    }
+  };
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Arquivo muito grande",
-          description: "O arquivo deve ter no máximo 5MB.",
-          variant: "destructive",
-        });
-        return;
-      }
+  const handleSaveBrand = () => {
+    updateSettingsMutation.mutate([
+      { key: "brand_name", value: brandName },
+      { key: "brand_subtitle", value: brandSubtitle }
+    ]);
+  };
 
-      uploadLogo.mutate(file);
-      
-      // Clear the input after upload attempt
-      event.target.value = '';
+  const handleSaveEstanteCredentials = () => {
+    updateSettingsMutation.mutate([
+      { key: "estante_email", value: estanteEmail },
+      { key: "estante_password", value: estantePassword }
+    ]);
+  };
+
+  const testEstanteConnection = async () => {
+    setTestingConnection(true);
+    setConnectionResult(null);
+    
+    try {
+      const response = await apiRequest('/api/estante-virtual/test-connection', {
+        method: 'POST'
+      });
+      const result = await response.json();
+      setConnectionResult(result);
+    } catch (error) {
+      setConnectionResult({ 
+        success: false, 
+        message: "Erro ao testar conexão" 
+      });
+    } finally {
+      setTestingConnection(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Settings className="w-6 h-6" />
-        <h1 className="text-2xl font-bold">Configurações</h1>
-      </div>
-
-      <div className="grid gap-6">
-        {/* Brand Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Image className="w-5 h-5" />
-              <span>Identidade Visual</span>
-            </CardTitle>
-            <CardDescription>
-              Configure a logo e textos exibidos na barra lateral
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="logo-url">URL da Logo</Label>
-                  <Input
-                    id="logo-url"
-                    placeholder="https://exemplo.com/logo.svg"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Cole a URL de uma imagem SVG ou PNG
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="logo-upload">Ou faça upload de uma imagem</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="logo-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploadLogo.isPending}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-50"
+    <div className="min-h-screen bg-gray-50">
+      <TopBar />
+      
+      <div className="p-6">
+        <Tabs defaultValue="brand" className="max-w-4xl mx-auto">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="brand">Marca e Logo</TabsTrigger>
+            <TabsTrigger value="estante">Estante Virtual</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="brand" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Image className="w-5 h-5" />
+                  Logo da Loja
+                </CardTitle>
+                <CardDescription>
+                  Faça upload da logo da sua loja. Formatos suportados: PNG, JPG, SVG (máx. 5MB)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {settings?.logo_url && (
+                  <div className="flex items-center gap-4">
+                    <img 
+                      src={settings.logo_url} 
+                      alt="Logo atual" 
+                      className="w-24 h-24 object-contain rounded border"
                     />
-                    {uploadLogo.isPending ? (
-                      <div className="text-sm text-muted-foreground">Enviando...</div>
-                    ) : (
-                      <Upload className="w-4 h-4 text-muted-foreground" />
-                    )}
+                    <div className="text-sm text-gray-600">
+                      Logo atual
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Formatos aceitos: PNG, JPG, SVG. Tamanho máximo: 5MB
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="brand-name">Nome da Marca</Label>
+                )}
+                
+                <div>
                   <Input
-                    id="brand-name"
-                    placeholder="Nome da sua empresa"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={logoUploadMutation.isPending}
+                  />
+                  {logoUploadMutation.isPending && (
+                    <div className="text-sm text-gray-600 mt-2">
+                      Fazendo upload...
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SettingsIcon className="w-5 h-5" />
+                  Informações da Marca
+                </CardTitle>
+                <CardDescription>
+                  Configure o nome e subtítulo da sua loja
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="brandName">Nome da Loja</Label>
+                  <Input
+                    id="brandName"
                     value={brandName}
                     onChange={(e) => setBrandName(e.target.value)}
+                    placeholder="Ex: Luar Sebo e Livraria"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="brand-subtitle">Subtítulo</Label>
+                
+                <div>
+                  <Label htmlFor="brandSubtitle">Subtítulo</Label>
                   <Input
-                    id="brand-subtitle"
-                    placeholder="Descrição da empresa"
+                    id="brandSubtitle"
                     value={brandSubtitle}
                     onChange={(e) => setBrandSubtitle(e.target.value)}
+                    placeholder="Ex: Sebo e Livraria"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Pré-visualização</Label>
-                <div className="border rounded-lg p-3 bg-yellow-50 dark:bg-black-800">
-                  <div className="flex items-center space-x-0">
-                    {logoUrl && logoUrl.trim() ? (
-                      <img 
-                        src={logoUrl} 
-                        alt="Logo preview" 
-                        className="w-24 h-24 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
+                
+                <Button 
+                  onClick={handleSaveBrand}
+                  disabled={updateSettingsMutation.isPending}
+                >
+                  Salvar Configurações
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="estante" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  Credenciais da Estante Virtual
+                </CardTitle>
+                <CardDescription>
+                  Configure sua conta da Estante Virtual para sincronização automática
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="estanteEmail">Email</Label>
+                  <Input
+                    id="estanteEmail"
+                    type="email"
+                    value={estanteEmail}
+                    onChange={(e) => setEstanteEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="estantePassword">Senha</Label>
+                  <Input
+                    id="estantePassword"
+                    type="password"
+                    value={estantePassword}
+                    onChange={(e) => setEstantePassword(e.target.value)}
+                    placeholder="Sua senha"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleSaveEstanteCredentials}
+                    disabled={updateSettingsMutation.isPending}
+                  >
+                    Salvar Credenciais
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={testEstanteConnection}
+                    disabled={testingConnection || !estanteEmail || !estantePassword}
+                  >
+                    Testar Conexão
+                  </Button>
+                </div>
+                
+                {connectionResult && (
+                  <Alert>
+                    {connectionResult.success ? (
+                      <CheckCircle className="h-4 w-4" />
                     ) : (
-                      <div className="w-24 h-24 bg-orange-200 rounded-lg flex items-center justify-center">
-                        <Image className="w-12 h-12 text-orange-600" />
-                        <span className="sr-only">Espaço para logo</span>
-                      </div>
+                      <XCircle className="h-4 w-4" />
                     )}
-                    <div>
-                      <h1 className="text-xl font-bold text-black dark:text-yellow-300">
-                        {brandName || "Nome da Marca"}
-                      </h1>
-                      <p className="text-sm text-black-700 dark:text-yellow-500">
-                        {brandSubtitle || "Subtítulo"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setLogoUrl("");
-                  setBrandName("");
-                  setBrandSubtitle("");
-                  setEstanteEmail("");
-                  setEstantePassword("");
-                  setEstanteSellerId("");
-                }}
-                disabled={saveSetting.isPending || uploadLogo.isPending}
-              >
-                Limpar
-              </Button>
-              <Button 
-                onClick={handleSaveWithoutTest} 
-                disabled={saveSetting.isPending || uploadLogo.isPending || testConnection.isPending}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saveSetting.isPending ? "Salvando..." : "Salvar Configurações"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Estante Virtual Connection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Link className="w-5 h-5" />
-              <span>Conexão Estante Virtual</span>
-            </CardTitle>
-            <CardDescription>
-              Configure suas credenciais para integração automática com a Estante Virtual
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="estante-email">E-mail da Estante Virtual</Label>
-                <Input
-                  id="estante-email"
-                  type="email"
-                  placeholder="seu-email@exemplo.com"
-                  value={estanteEmail}
-                  onChange={(e) => setEstanteEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="estante-password">Senha</Label>
-                <Input
-                  id="estante-password"
-                  type="password"
-                  placeholder="•••••••••"
-                  value={estantePassword}
-                  onChange={(e) => setEstantePassword(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="estante-seller-id">ID do Vendedor (opcional)</Label>
-                <Input
-                  id="estante-seller-id"
-                  placeholder="ID único do vendedor"
-                  value={estanteSellerId}
-                  onChange={(e) => setEstanteSellerId(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Deixe em branco se não souber seu ID de vendedor
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <Shield className="w-5 h-5 text-blue-600" />
-                <div className="text-sm">
-                  <p className="font-medium text-blue-900 dark:text-blue-100">Dados Seguros</p>
-                  <p className="text-blue-700 dark:text-blue-300">
-                    Suas credenciais são armazenadas de forma segura
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={handleTestConnection}
-                disabled={saveSetting.isPending || uploadLogo.isPending || testConnection.isPending}
-              >
-                <Link className="w-4 h-4 mr-2" />
-                {testConnection.isPending ? "Testando..." : "Testar Conexão"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Current Settings Display */}
-        {settings.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações Atuais</CardTitle>
-              <CardDescription>
-                Todas as configurações salvas no sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {settings.map((setting) => (
-                  <div key={setting.id} className="grid grid-cols-3 gap-4 p-2 border rounded">
-                    <div className="font-medium">{setting.key}</div>
-                    <div className="text-muted-foreground truncate">{setting.value}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(setting.updatedAt).toLocaleDateString('pt-BR')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                    <AlertDescription>
+                      {connectionResult.message}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

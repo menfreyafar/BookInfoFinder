@@ -681,6 +681,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import catalog from Estante Virtual
+  app.post("/api/estante-virtual/import-catalog", async (req, res) => {
+    try {
+      const result = await estanteVirtualService.importCatalog();
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: `${result.imported} livros importados com sucesso`,
+          imported: result.imported,
+          errors: result.errors
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: "Falha na importação do catálogo",
+          errors: result.errors
+        });
+      }
+    } catch (error) {
+      console.error("Error importing catalog:", error);
+      res.status(500).json({ error: "Erro ao importar catálogo da Estante Virtual" });
+    }
+  });
+
   // Test Estante Virtual login
   app.post("/api/estante-virtual/test-login", async (req, res) => {
     try {

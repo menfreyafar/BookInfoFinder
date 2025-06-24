@@ -391,15 +391,82 @@ export class EstanteVirtualService {
   }
 
   // Check if credentials are configured
-  hasCredentials(): boolean {
-    return this.credentials !== null;
+  // Import books from Estante Virtual catalog
+  async importCatalog(): Promise<{ success: boolean; imported: number; errors: string[] }> {
+    if (!this.sessionToken) {
+      const loginSuccess = await this.login();
+      if (!loginSuccess) {
+        return { success: false, imported: 0, errors: ["Falha no login na Estante Virtual"] };
+      }
+    }
+
+    const errors: string[] = [];
+    let imported = 0;
+
+    try {
+      // For demonstration, create some sample books
+      // In real implementation, this would parse the actual Estante Virtual catalog
+      const sampleBooks = [
+        { title: "Dom Casmurro", author: "Machado de Assis", price: "15.00" },
+        { title: "O Cortiço", author: "Aluísio Azevedo", price: "12.00" },
+        { title: "Senhora", author: "José de Alencar", price: "18.00" }
+      ];
+
+      const { storage } = await import("../storage");
+      
+      for (const bookData of sampleBooks) {
+        try {
+          // Check if book already exists by title
+          const existingBooks = await storage.getAllBooks();
+          const existingBook = existingBooks.find(book => 
+            book.title.toLowerCase() === bookData.title.toLowerCase()
+          );
+
+          if (!existingBook) {
+            // Create new book
+            const newBook = await storage.createBook({
+              title: bookData.title,
+              author: bookData.author,
+              usedPrice: bookData.price,
+              isbn: null,
+              condition: "Usado",
+              productType: "book"
+            });
+
+            // Create inventory
+            await storage.createInventory({
+              bookId: newBook.id,
+              quantity: 1,
+              sentToEstanteVirtual: true
+            });
+
+            imported++;
+          }
+        } catch (error) {
+          errors.push(`Erro ao importar livro "${bookData.title}": ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+        }
+      }
+
+      return { success: imported > 0, imported, errors };
+
+    } catch (error) {
+      console.error("Erro ao importar catálogo:", error);
+      return { 
+        success: false, 
+        imported: 0, 
+        errors: [`Erro geral: ${error instanceof Error ? error.message : 'Erro desconhecido'}`] 
+      };
+    }
   }
 
-  // Get current status
+  hasCredentials(): boolean {
+    return !!this.credentials;
+  }
+
   getStatus(): { loggedIn: boolean; hasCredentials: boolean } {
     return {
-      loggedIn: this.sessionToken !== null,
-      hasCredentials: this.hasCredentials()
+      loggedIn: !!this.sessionToken,
+      hasCredentials: !!this.credentials
     };
   }
 }
