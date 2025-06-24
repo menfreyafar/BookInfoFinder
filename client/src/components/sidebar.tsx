@@ -8,8 +8,8 @@ import {
   BarChart3,
   Library,
   Truck,
-  Image,
-  ArrowUpDown
+  ArrowUpDown,
+  BookOpen
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -29,6 +29,7 @@ const navigation = [
   { name: "Ponto de Venda", href: "/pos", icon: ShoppingCart },
   { name: "Pedidos", href: "/orders", icon: Truck },
   { name: "Trocas", href: "/exchanges", icon: ArrowUpDown },
+  { name: "Pré-Cadastros", href: "/pre-catalog", icon: BookOpen },
   { name: "Exportar", href: "/export", icon: Download },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];

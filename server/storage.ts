@@ -9,6 +9,8 @@ import {
   estanteVirtualOrderItems,
   exchanges,
   exchangeItems,
+  exchangeGivenBooks,
+  preCatalogBooks,
   type Book, 
   type InsertBook,
   type Inventory,
@@ -30,6 +32,10 @@ import {
   type InsertExchange,
   type ExchangeItem,
   type InsertExchangeItem,
+  type ExchangeGivenBook,
+  type InsertExchangeGivenBook,
+  type PreCatalogBook,
+  type InsertPreCatalogBook,
   type ExchangeWithItems
 } from "@shared/schema";
 import type { Setting, InsertSetting } from "@shared/schema";
@@ -75,11 +81,17 @@ export interface IStorage {
   getAllSettings(): Promise<Setting[]>;
 
   // Exchanges
-  createExchange(exchange: InsertExchange, items: InsertExchangeItem[]): Promise<ExchangeWithItems>;
+  createExchange(exchange: InsertExchange, items: InsertExchangeItem[], givenBooks: InsertExchangeGivenBook[]): Promise<ExchangeWithItems>;
   getExchange(id: number): Promise<ExchangeWithItems | undefined>;
   getAllExchanges(): Promise<ExchangeWithItems[]>;
   updateExchange(id: number, exchange: Partial<InsertExchange>): Promise<Exchange | undefined>;
   deleteExchange(id: number): Promise<boolean>;
+  processExchangeInventory(exchangeId: number): Promise<{ success: boolean; message: string; processedBooks: number; errors: string[] }>;
+  
+  // Pre-catalog books
+  getPreCatalogBooks(exchangeId?: number): Promise<PreCatalogBook[]>;
+  processPreCatalogBook(id: number, bookData: InsertBook): Promise<Book>;
+  rejectPreCatalogBook(id: number, reason: string): Promise<boolean>;
   
   // Dashboard stats
   getDashboardStats(): Promise<{
@@ -469,9 +481,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Exchanges
-  async createExchange(exchange: InsertExchange, items: InsertExchangeItem[]): Promise<ExchangeWithItems> {
+  async createExchange(exchange: InsertExchange, items: InsertExchangeItem[], givenBooks: InsertExchangeGivenBook[]): Promise<ExchangeWithItems> {
     const [newExchange] = await db.insert(exchanges).values(exchange).returning();
     
+    // Criar itens da troca (livros recebidos analisados da foto)
     const exchangeItemsWithId = items.map(item => ({
       ...item,
       exchangeId: newExchange.id
@@ -479,9 +492,38 @@ export class DatabaseStorage implements IStorage {
     
     const newItems = await db.insert(exchangeItems).values(exchangeItemsWithId).returning();
     
+    // Criar livros dados na troca
+    let newGivenBooks: ExchangeGivenBook[] = [];
+    if (givenBooks.length > 0) {
+      const givenBooksWithId = givenBooks.map(book => ({
+        ...book,
+        exchangeId: newExchange.id
+      }));
+      
+      newGivenBooks = await db.insert(exchangeGivenBooks).values(givenBooksWithId).returning();
+    }
+
+    // Criar pré-cadastros dos livros analisados na foto
+    const preCatalogBooksData = items.map(item => ({
+      exchangeId: newExchange.id,
+      bookTitle: item.bookTitle,
+      bookAuthor: item.bookAuthor,
+      estimatedSaleValue: item.estimatedSaleValue,
+      publishYear: item.publishYear,
+      condition: item.condition,
+      isCompleteSeries: item.isCompleteSeries,
+      finalTradeValue: item.finalTradeValue,
+      status: 'pending' as const,
+      confidence: 85, // default confidence
+    }));
+
+    const newPreCatalogBooks = await db.insert(preCatalogBooks).values(preCatalogBooksData).returning();
+    
     return {
       ...newExchange,
-      items: newItems
+      items: newItems,
+      givenBooks: newGivenBooks,
+      preCatalogBooks: newPreCatalogBooks
     };
   }
 
@@ -490,10 +532,14 @@ export class DatabaseStorage implements IStorage {
     if (!exchange) return undefined;
     
     const items = await db.select().from(exchangeItems).where(eq(exchangeItems.exchangeId, id));
+    const givenBooks = await db.select().from(exchangeGivenBooks).where(eq(exchangeGivenBooks.exchangeId, id));
+    const preCatalogBooksResult = await db.select().from(preCatalogBooks).where(eq(preCatalogBooks.exchangeId, id));
     
     return {
       ...exchange,
-      items
+      items,
+      givenBooks,
+      preCatalogBooks: preCatalogBooksResult
     };
   }
 
@@ -503,9 +549,13 @@ export class DatabaseStorage implements IStorage {
     const exchangesWithItems = await Promise.all(
       allExchanges.map(async (exchange) => {
         const items = await db.select().from(exchangeItems).where(eq(exchangeItems.exchangeId, exchange.id));
+        const givenBooks = await db.select().from(exchangeGivenBooks).where(eq(exchangeGivenBooks.exchangeId, exchange.id));
+        const preCatalogBooksResult = await db.select().from(preCatalogBooks).where(eq(preCatalogBooks.exchangeId, exchange.id));
         return {
           ...exchange,
-          items
+          items,
+          givenBooks,
+          preCatalogBooks: preCatalogBooksResult
         };
       })
     );
@@ -525,7 +575,110 @@ export class DatabaseStorage implements IStorage {
   async deleteExchange(id: number): Promise<boolean> {
     // Delete items first due to foreign key constraint
     await db.delete(exchangeItems).where(eq(exchangeItems.exchangeId, id));
+    await db.delete(exchangeGivenBooks).where(eq(exchangeGivenBooks.exchangeId, id));
+    await db.delete(preCatalogBooks).where(eq(preCatalogBooks.exchangeId, id));
     const result = await db.delete(exchanges).where(eq(exchanges.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async processExchangeInventory(exchangeId: number): Promise<{ success: boolean; message: string; processedBooks: number; errors: string[] }> {
+    const exchange = await this.getExchange(exchangeId);
+    if (!exchange) {
+      return { success: false, message: "Troca não encontrada", processedBooks: 0, errors: [] };
+    }
+
+    if (exchange.inventoryProcessed) {
+      return { success: false, message: "Estoque já foi processado para esta troca", processedBooks: 0, errors: [] };
+    }
+
+    let processedBooks = 0;
+    const errors: string[] = [];
+
+    // Processar livros dados na troca (remover do estoque)
+    for (const givenBook of exchange.givenBooks) {
+      if (givenBook.inventoryProcessed) continue;
+
+      try {
+        if (givenBook.bookId) {
+          // Livro existe no acervo, reduzir quantidade
+          const bookInventory = await this.getInventory(givenBook.bookId);
+          if (bookInventory && bookInventory.quantity >= givenBook.quantity) {
+            await this.updateInventory(bookInventory.id, {
+              quantity: bookInventory.quantity - givenBook.quantity
+            });
+            
+            // Marcar como processado
+            await db.update(exchangeGivenBooks)
+              .set({ inventoryProcessed: true })
+              .where(eq(exchangeGivenBooks.id, givenBook.id));
+            
+            processedBooks++;
+          } else {
+            errors.push(`Estoque insuficiente para o livro: ${givenBook.bookTitle}`);
+          }
+        } else {
+          errors.push(`Livro não encontrado no acervo: ${givenBook.bookTitle}`);
+        }
+      } catch (error) {
+        errors.push(`Erro ao processar ${givenBook.bookTitle}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      }
+    }
+
+    // Marcar exchange como processado se não houve erros críticos
+    if (errors.length === 0) {
+      await this.updateExchange(exchangeId, { inventoryProcessed: true });
+    }
+
+    return {
+      success: errors.length === 0,
+      message: errors.length === 0 ? "Estoque processado com sucesso" : `Processado com ${errors.length} erros`,
+      processedBooks,
+      errors
+    };
+  }
+
+  // Pre-catalog books
+  async getPreCatalogBooks(exchangeId?: number): Promise<PreCatalogBook[]> {
+    if (exchangeId) {
+      return await db.select().from(preCatalogBooks).where(eq(preCatalogBooks.exchangeId, exchangeId));
+    }
+    return await db.select().from(preCatalogBooks).where(eq(preCatalogBooks.status, 'pending')).orderBy(desc(preCatalogBooks.createdAt));
+  }
+
+  async processPreCatalogBook(id: number, bookData: InsertBook): Promise<Book> {
+    const [preCatalogBook] = await db.select().from(preCatalogBooks).where(eq(preCatalogBooks.id, id));
+    if (!preCatalogBook) {
+      throw new Error("Livro de pré-cadastro não encontrado");
+    }
+
+    // Criar o livro no catálogo
+    const newBook = await this.createBook(bookData);
+    
+    // Criar entrada no estoque
+    await this.createInventory({
+      bookId: newBook.id,
+      quantity: 1,
+      location: bookData.shelf || 'A definir',
+      status: 'available'
+    });
+
+    // Marcar pré-cadastro como processado
+    await db.update(preCatalogBooks)
+      .set({ status: 'processed', updatedAt: new Date() })
+      .where(eq(preCatalogBooks.id, id));
+
+    return newBook;
+  }
+
+  async rejectPreCatalogBook(id: number, reason: string): Promise<boolean> {
+    const result = await db.update(preCatalogBooks)
+      .set({ 
+        status: 'rejected', 
+        notes: reason,
+        updatedAt: new Date() 
+      })
+      .where(eq(preCatalogBooks.id, id));
+    
     return (result.rowCount || 0) > 0;
   }
 }

@@ -101,6 +101,7 @@ export const exchanges = pgTable("exchanges", {
   totalTradeValue: decimal("total_trade_value", { precision: 10, scale: 2 }).notNull(),
   status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, completed, cancelled
   notes: text("notes"),
+  inventoryProcessed: boolean("inventory_processed").default(false), // se o estoque já foi processado
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -120,6 +121,45 @@ export const exchangeItems = pgTable("exchange_items", {
   finalPercentage: integer("final_percentage").notNull(),
   calculatedTradeValue: decimal("calculated_trade_value", { precision: 10, scale: 2 }).notNull(),
   finalTradeValue: decimal("final_trade_value", { precision: 10, scale: 2 }).notNull(),
+  itemType: varchar("item_type", { length: 20 }).notNull().default("received"), // received (recebido) or given (dado)
+});
+
+export const exchangeGivenBooks = pgTable("exchange_given_books", {
+  id: serial("id").primaryKey(),
+  exchangeId: integer("exchange_id").references(() => exchanges.id).notNull(),
+  bookId: integer("book_id").references(() => books.id),
+  bookTitle: text("book_title").notNull(),
+  bookAuthor: text("book_author"),
+  salePrice: decimal("sale_price", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  notes: text("notes"),
+  inventoryProcessed: boolean("inventory_processed").default(false), // se foi removido do estoque
+});
+
+// Tabela para livros em pré-cadastro (vindos da análise de foto)
+export const preCatalogBooks = pgTable("pre_catalog_books", {
+  id: serial("id").primaryKey(),
+  exchangeId: integer("exchange_id").references(() => exchanges.id).notNull(),
+  bookTitle: text("book_title").notNull(),
+  bookAuthor: text("book_author"),
+  estimatedSaleValue: decimal("estimated_sale_value", { precision: 10, scale: 2 }).notNull(),
+  publishYear: integer("publish_year"),
+  condition: varchar("condition", { length: 20 }).notNull(), // novo, usado
+  isCompleteSeries: boolean("is_complete_series").default(false),
+  finalTradeValue: decimal("final_trade_value", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, processed, rejected
+  category: text("category"),
+  synopsis: text("synopsis"),
+  coverImage: text("cover_image"),
+  isbn: varchar("isbn", { length: 20 }),
+  publisher: text("publisher"),
+  edition: text("edition"),
+  weight: integer("weight"),
+  shelf: text("shelf"),
+  confidence: integer("confidence"), // confiança da análise IA (0-100)
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Relations
@@ -170,11 +210,31 @@ export const estanteVirtualOrderItemsRelations = relations(estanteVirtualOrderIt
 
 export const exchangesRelations = relations(exchanges, ({ many }) => ({
   items: many(exchangeItems),
+  givenBooks: many(exchangeGivenBooks),
+  preCatalogBooks: many(preCatalogBooks),
 }));
 
 export const exchangeItemsRelations = relations(exchangeItems, ({ one }) => ({
   exchange: one(exchanges, {
     fields: [exchangeItems.exchangeId],
+    references: [exchanges.id],
+  }),
+}));
+
+export const exchangeGivenBooksRelations = relations(exchangeGivenBooks, ({ one }) => ({
+  exchange: one(exchanges, {
+    fields: [exchangeGivenBooks.exchangeId],
+    references: [exchanges.id],
+  }),
+  book: one(books, {
+    fields: [exchangeGivenBooks.bookId],
+    references: [books.id],
+  }),
+}));
+
+export const preCatalogBooksRelations = relations(preCatalogBooks, ({ one }) => ({
+  exchange: one(exchanges, {
+    fields: [preCatalogBooks.exchangeId],
     references: [exchanges.id],
   }),
 }));
@@ -215,6 +275,16 @@ export const insertExchangeSchema = createInsertSchema(exchanges).omit({
 
 export const insertExchangeItemSchema = createInsertSchema(exchangeItems).omit({
   id: true,
+});
+
+export const insertExchangeGivenBookSchema = createInsertSchema(exchangeGivenBooks).omit({
+  id: true,
+});
+
+export const insertPreCatalogBookSchema = createInsertSchema(preCatalogBooks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
@@ -268,7 +338,13 @@ export type Exchange = typeof exchanges.$inferSelect;
 export type InsertExchange = z.infer<typeof insertExchangeSchema>;
 export type ExchangeItem = typeof exchangeItems.$inferSelect;
 export type InsertExchangeItem = z.infer<typeof insertExchangeItemSchema>;
+export type ExchangeGivenBook = typeof exchangeGivenBooks.$inferSelect;
+export type InsertExchangeGivenBook = z.infer<typeof insertExchangeGivenBookSchema>;
+export type PreCatalogBook = typeof preCatalogBooks.$inferSelect;
+export type InsertPreCatalogBook = z.infer<typeof insertPreCatalogBookSchema>;
 
 export type ExchangeWithItems = Exchange & {
   items: ExchangeItem[];
+  givenBooks: ExchangeGivenBook[];
+  preCatalogBooks: PreCatalogBook[];
 };

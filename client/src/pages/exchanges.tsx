@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Camera, Upload, Calculator, Check, X, Eye, Trash2, Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 interface ExchangeItem {
   id?: number;
@@ -27,6 +27,17 @@ interface ExchangeItem {
   finalPercentage: number;
   calculatedTradeValue: number;
   finalTradeValue: number;
+  itemType: 'received' | 'given';
+}
+
+interface ExchangeGivenBook {
+  id?: number;
+  bookId?: number;
+  bookTitle: string;
+  bookAuthor?: string;
+  salePrice: number;
+  quantity: number;
+  notes?: string;
 }
 
 interface Exchange {
@@ -40,6 +51,7 @@ interface Exchange {
   createdAt: string;
   updatedAt: string;
   items: ExchangeItem[];
+  givenBooks: ExchangeGivenBook[];
 }
 
 interface PhotoAnalysisResult {
@@ -75,6 +87,15 @@ export default function Exchanges() {
     customerName: '',
     customerEmail: '',
     customerPhone: '',
+    notes: ''
+  });
+  const [givenBooks, setGivenBooks] = useState<ExchangeGivenBook[]>([]);
+  const [showAddBookDialog, setShowAddBookDialog] = useState(false);
+  const [newGivenBook, setNewGivenBook] = useState<ExchangeGivenBook>({
+    bookTitle: '',
+    bookAuthor: '',
+    salePrice: 0,
+    quantity: 1,
     notes: ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,7 +145,7 @@ export default function Exchanges() {
   });
 
   const createExchangeMutation = useMutation({
-    mutationFn: async (data: { exchange: any; items: ExchangeItem[] }) => {
+    mutationFn: async (data: { exchange: any; items: ExchangeItem[]; givenBooks: ExchangeGivenBook[] }) => {
       const response = await fetch('/api/exchanges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

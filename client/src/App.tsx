@@ -12,6 +12,7 @@ import POS from "@/pages/pos";
 import Export from "@/pages/export";
 import Orders from "@/pages/orders";
 import Exchanges from "@/pages/exchanges";
+import PreCatalog from "@/pages/pre-catalog";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -28,6 +29,7 @@ function Router() {
           <Route path="/pos" component={POS} />
           <Route path="/orders" component={Orders} />
           <Route path="/exchanges" component={Exchanges} />
+          <Route path="/pre-catalog" component={PreCatalog} />
           <Route path="/export" component={Export} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />

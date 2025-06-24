@@ -9,7 +9,7 @@ import { formatBooksForEstanteVirtual, generateExcelFile, generateCSVFile, gener
 import { estanteVirtualService } from "./services/estanteVirtual";
 import { orderImporterService } from "./services/orderImporter";
 import { dailyExportScheduler } from "./services/scheduler";
-import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema, insertExchangeSchema, insertExchangeItemSchema } from "@shared/schema";
+import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema, insertExchangeSchema, insertExchangeItemSchema, insertExchangeGivenBookSchema, insertPreCatalogBookSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 
@@ -986,6 +986,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Erro ao fazer upload da logo" });
     }
   });
+
+  // Exchanges API
+  app.get("/api/exchanges", async (req, res) => {
+    try {
+      const exchanges = await storage.getAllExchanges();
+      res.json(exchanges);
+    } catch (error) {
+      console.error("Error fetching exchanges:", error);
+      res.status(500).json({ error: "Erro ao buscar trocas" });
+    }
+  });
+
+  app.get("/api/exchanges/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const exchange = await storage.getExchange(id);
+      
+      if (!exchange) {
+        return res.status(404).json({ error: "Troca não encontrada" });
+      }
+      
+      res.json(exchange);
+    } catch (error) {
+      console.error("Error fetching exchange:", error);
+      res.status(500).json({ error: "Erro ao buscar troca" });
+    }
+  });
+
+  app.post("/api/exchanges/analyze-photo", upload.single('photo'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Foto é obrigatória" });
+      }
+
+      const imageBase64 = req.file.buffer.toString('base64');
+      const identifiedBooks = await analyzeExchangePhoto(imageBase64);
+      
+      if (identifiedBooks.length === 0) {
+        return res.status(400).json({ error: "Nenhum livro foi identificado na foto" });
+      }
+
+      const tradeAnalysis = calculateBulkTradeValue(identifiedBooks);
+      const explanation = generateTradeExplanation(identifiedBooks);
+
+      res.json({
+        books: tradeAnalysis.books,
+        totalTradeValue: tradeAnalysis.totalTradeValue,
+        bookCount: tradeAnalysis.bookCount,
+        explanation
+      });
+    } catch (error) {
+      console.error("Error analyzing exchange photo:", error);
+      res.status(500).json({ error: "Erro ao analisar foto da troca" });
+    }
+  });
+
+  app.post("/api/exchanges", async (req, res) => {
+    try {
+      const { exchange, items, givenBooks = [] } = req.body;
+      
+      // Validate exchange data
+      const validatedExchange = insertExchangeSchema.parse(exchange);
+      
+      // Validate items data
+      const validatedItems = items.map((item: any) => insertExchangeItemSchema.parse(item));
+      
+      // Validate given books data
+      const validatedGivenBooks = givenBooks.map((book: any) => insertExchangeGivenBookSchema.parse(book));
+      
+      const newExchange = await storage.createExchange(validatedExchange, validatedItems, validatedGivenBooks);
+      res.status(201).json(newExchange);
+    } catch (error) {
+      console.error("Error creating exchange:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Erro ao criar troca" });
+      }
+    }
+  });
+
+  app.put("/api/exchanges/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      const updatedExchange = await storage.updateExchange(id, updateData);
+      
+      if (!updatedExchange) {
+        return res.status(404).json({ error: "Troca não encontrada" });
+      }
+      
+      res.json(updatedExchange);
+    } catch (error) {
+      console.error("Error updating exchange:", error);
+      res.status(500).json({ error: "Erro ao atualizar troca" });
+    }
+  });
+
+  app.delete("/api/exchanges/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteExchange(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Troca não encontrada" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting exchange:", error);
+      res.status(500).json({ error: "Erro ao deletar troca" });
+    }
+  });
+
+  app.post("/api/exchanges/calculate", async (req, res) => {
+    try {
+      const { estimatedSaleValue, publishYear, isCompleteSeries, condition } = req.body;
+      
+      if (!estimatedSaleValue || !condition) {
+        return res.status(400).json({ error: "Valor estimado e condição são obrigatórios" });
+      }
+      
+      const result = calculateTradeValue({
+        estimatedSaleValue: parseFloat(estimatedSaleValue),
+        publishYear: publishYear ? parseInt(publishYear) : undefined,
+        isCompleteSeries: Boolean(isCompleteSeries),
+        condition: condition as 'novo' | 'usado'
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error calculating trade value:", error);
+      res.status(500).json({ error: "Erro ao calcular valor da troca" });
+    }
+  });
+
+  // Process exchange inventory
+  app.post("/api/exchanges/:id/process-inventory", async (req, res) => {
+    try {
+      const exchangeId = parseInt(req.params.id);
+      const result = await storage.processExchangeInventory(exchangeId);
+      
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error("Error processing exchange inventory:", error);
+      res.status(500).json({ error: "Erro ao processar estoque da troca" });
+    }
+  });
+
+  // Pre-catalog books management
+  app.get("/api/pre-catalog-books", async (req, res) => {
+    try {
+      const { exchangeId } = req.query;
+      const books = await storage.getPreCatalogBooks(exchangeId ? parseInt(exchangeId as string) : undefined);
+      res.json(books);
+    } catch (error) {
+      console.error("Error fetching pre-catalog books:", error);
+      res.status(500).json({ error: "Erro ao buscar livros em pré-cadastro" });
+    }
+  });
+
+  app.post("/api/pre-catalog-books/:id/process", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const bookData = insertBookSchema.parse(req.body);
+      
+      const newBook = await storage.processPreCatalogBook(id, bookData);
+      res.status(201).json(newBook);
+    } catch (error) {
+      console.error("Error processing pre-catalog book:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Erro ao processar livro" });
+      }
+    }
+  });
+
+  app.post("/api/pre-catalog-books/:id/reject", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      const success = await storage.rejectPreCatalogBook(id, reason || "Rejeitado pelo usuário");
+      
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Livro não encontrado" });
+      }
+    } catch (error) {
+      console.error("Error rejecting pre-catalog book:", error);
+      res.status(500).json({ error: "Erro ao rejeitar livro" });
+    }
+  });
+
+  // Start the export scheduler (if available)
+  try {
+    if (dailyExportScheduler && typeof dailyExportScheduler.start === 'function') {
+      dailyExportScheduler.start();
+    }
+  } catch (error) {
+    console.warn('Export scheduler not available:', error);
+  }
 
   const httpServer = createServer(app);
   return httpServer;
