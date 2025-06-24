@@ -11,7 +11,6 @@ import {
   Image
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import Logo from "./logo";
 
 interface Setting {
   id: number;
@@ -54,18 +53,16 @@ export default function Sidebar() {
     <div className="w-64 bg-yellow-50 dark:bg-black-800 shadow-lg border-r border-orange-300 dark:border-orange-600 fixed h-full z-20">
       <div className="p-6 border-b border-orange-300 dark:border-orange-600">
         <div className="flex items-center space-x-3">
-          {logoUrl ? (
+          {logoUrl && logoUrl.trim() && (
             <img 
               src={logoUrl} 
               alt="Logo" 
               className="w-12 h-12 object-contain"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
               }}
             />
-          ) : null}
-          <Logo className={`w-12 h-12 ${logoUrl ? 'hidden' : ''}`} />
+          )}
           <div>
             <h1 className="text-xl font-bold text-black dark:text-yellow-300">{brandName}</h1>
             <p className="text-sm text-black-700 dark:text-yellow-500">{brandSubtitle}</p>

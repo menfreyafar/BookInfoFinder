@@ -171,7 +171,7 @@ export default function SettingsPage() {
                 <Label>Pré-visualização</Label>
                 <div className="border rounded-lg p-4 bg-yellow-50 dark:bg-black-800">
                   <div className="flex items-center space-x-3">
-                    {logoUrl ? (
+                    {logoUrl && logoUrl.trim() ? (
                       <img 
                         src={logoUrl} 
                         alt="Logo preview" 
@@ -183,6 +183,7 @@ export default function SettingsPage() {
                     ) : (
                       <div className="w-12 h-12 bg-orange-200 rounded-lg flex items-center justify-center">
                         <Image className="w-6 h-6 text-orange-600" />
+                        <span className="sr-only">Espaço para logo</span>
                       </div>
                     )}
                     <div>

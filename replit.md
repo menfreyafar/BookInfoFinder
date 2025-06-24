@@ -102,6 +102,16 @@ The application uses a relational database structure with the following core ent
 6. Export data to Excel for Estante Virtual
 
 ## Changelog
+- January 24, 2025. Project migration and settings implementation
+  - **Project Migration**: Successfully migrated from Replit Agent to standard Replit environment
+  - **Settings System**: Added comprehensive settings management with database storage
+  - **Logo Customization**: Implemented dynamic logo and brand text configuration
+  - **Database Enhancement**: Added settings table with key-value storage for application configuration
+  - **API Endpoints**: Created REST endpoints for settings management (GET, POST /api/settings)
+  - **UI Enhancement**: Built complete settings page with real-time preview and validation
+  - **Sidebar Integration**: Updated sidebar to dynamically display custom logos and brand text
+  - **Default Logo Removal**: Removed hardcoded SVG logo to allow full customization through settings
+
 - June 21, 2025. Initial setup and error corrections
   - Fixed Select component errors with empty values
   - Corrected ISBN search automatic data fetching
