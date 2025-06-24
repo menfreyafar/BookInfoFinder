@@ -445,6 +445,35 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(settings);
   }
 
+  // Missing Books methods
+  async getAllMissingBooks() {
+    return await db.select().from(missingBooks).orderBy(missingBooks.priority, missingBooks.title);
+  }
+
+  async createMissingBook(data: any) {
+    const [missingBook] = await db.insert(missingBooks).values(data).returning();
+    return missingBook;
+  }
+
+  async updateMissingBook(id: number, data: any) {
+    const [missingBook] = await db
+      .update(missingBooks)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(missingBooks.id, id))
+      .returning();
+    return missingBook;
+  }
+
+  async deleteMissingBook(id: number) {
+    await db.delete(missingBooks).where(eq(missingBooks.id, id));
+  }
+
+  async importClassicBooks() {
+    // The classics are already imported, so just return the count
+    const existingBooks = await db.select().from(missingBooks);
+    return existingBooks.length;
+  }
+
   async getDashboardStats() {
     const [totalBooksResult] = await db.select({ count: sql<number>`count(*)` }).from(books);
     const totalBooks = totalBooksResult.count;

@@ -23,6 +23,57 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardStats, BookWithInventory } from "@/lib/types";
 
+interface MissingBook {
+  id: number;
+  title: string;
+  author: string;
+  category: string;
+  priority: number;
+}
+
+function MissingBooksAlert() {
+  const { data: missingBooks = [] } = useQuery<MissingBook[]>({
+    queryKey: ['/api/missing-books'],
+    queryFn: () => fetch('/api/missing-books').then(res => res.json()),
+    select: (data) => data.slice(0, 5), // Show only first 5
+  });
+
+  if (missingBooks.length === 0) {
+    return (
+      <p className="text-gray-500 text-center py-8">
+        Todos os livros clássicos estão disponíveis
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {missingBooks.map((book) => (
+        <div key={book.id} className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+          <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+            <AlertTriangle className="text-yellow-600 w-4 h-4" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-medium text-gray-900">{book.title}</h4>
+            <p className="text-yellow-600 text-sm">{book.author}</p>
+            <p className="text-yellow-600 text-xs">{book.category}</p>
+          </div>
+          <div className="text-yellow-600 text-xs font-medium">
+            {book.priority === 1 ? 'Alta' : book.priority === 2 ? 'Média' : 'Baixa'}
+          </div>
+        </div>
+      ))}
+      {missingBooks.length > 0 && (
+        <div className="text-center pt-2">
+          <p className="text-yellow-600 text-sm font-medium">
+            {missingBooks.length} livros clássicos precisam ser repostos
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface TopBarProps {
   title: string;
   description: string;
@@ -330,10 +381,25 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Inventory Alerts */}
+          {/* Missing Books Alerts */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Alertas de Estoque</CardTitle>
+              <CardTitle>Livros em Falta</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setLocation('/missing-books')}>
+                Ver todos
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <MissingBooksAlert />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Low Stock Alerts */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Alertas de Estoque Baixo</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setLocation('/inventory')}>
                 Gerenciar
               </Button>

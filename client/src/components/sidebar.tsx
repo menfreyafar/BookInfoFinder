@@ -9,7 +9,8 @@ import {
   Library,
   Truck,
   ArrowUpDown,
-  BookOpen
+  BookOpen,
+  AlertTriangle
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -26,6 +27,7 @@ const navigation = [
   { name: "Busca por ISBN", href: "/isbn-search", icon: Barcode },
   { name: "Catálogo", href: "/catalog", icon: Library },
   { name: "Estoque", href: "/inventory", icon: Package },
+  { name: "Livros em Falta", href: "/missing-books", icon: AlertTriangle },
   { name: "Ponto de Venda", href: "/pos", icon: ShoppingCart },
   { name: "Pedidos", href: "/orders", icon: Truck },
   { name: "Trocas", href: "/exchanges", icon: ArrowUpDown },

@@ -31,6 +31,7 @@ function Router() {
           <Route path="/orders" component={Orders} />
           <Route path="/exchanges" component={Exchanges} />
           <Route path="/pre-catalog" component={PreCatalog} />
+          <Route path="/missing-books" component={MissingBooks} />
           <Route path="/export" component={Export} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />

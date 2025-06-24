@@ -57,6 +57,7 @@ export default function MissingBooks() {
   // Fetch missing books
   const { data: missingBooks = [], isLoading } = useQuery<MissingBook[]>({
     queryKey: ['/api/missing-books'],
+    queryFn: () => fetch('/api/missing-books').then(res => res.json()),
   });
 
   // Create missing book mutation

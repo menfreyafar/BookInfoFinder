@@ -455,6 +455,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Missing Books API
+  app.get("/api/missing-books", async (req, res) => {
+    try {
+      const missingBooks = await storage.getAllMissingBooks();
+      res.json(missingBooks);
+    } catch (error) {
+      console.error("Error fetching missing books:", error);
+      res.status(500).json({ error: "Erro ao buscar livros em falta" });
+    }
+  });
+
+  app.post("/api/missing-books", async (req, res) => {
+    try {
+      const missingBook = await storage.createMissingBook(req.body);
+      res.json(missingBook);
+    } catch (error) {
+      console.error("Error creating missing book:", error);
+      res.status(500).json({ error: "Erro ao criar livro em falta" });
+    }
+  });
+
+  app.put("/api/missing-books/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const missingBook = await storage.updateMissingBook(id, req.body);
+      res.json(missingBook);
+    } catch (error) {
+      console.error("Error updating missing book:", error);
+      res.status(500).json({ error: "Erro ao atualizar livro em falta" });
+    }
+  });
+
+  app.delete("/api/missing-books/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteMissingBook(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting missing book:", error);
+      res.status(500).json({ error: "Erro ao deletar livro em falta" });
+    }
+  });
+
+  app.post("/api/missing-books/import-classics", async (req, res) => {
+    try {
+      const imported = await storage.importClassicBooks();
+      res.json({ imported, message: `${imported} livros clássicos importados` });
+    } catch (error) {
+      console.error("Error importing classics:", error);
+      res.status(500).json({ error: "Erro ao importar clássicos" });
+    }
+  });
+
   // Estante Virtual Integration
   app.post("/api/estante-virtual/credentials", async (req, res) => {
     try {
