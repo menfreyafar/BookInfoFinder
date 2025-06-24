@@ -253,7 +253,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <Label>Pré-visualização</Label>
                 <div className="border rounded-lg p-3 bg-yellow-50 dark:bg-black-800">
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-0">
                     {logoUrl && logoUrl.trim() ? (
                       <img 
                         src={logoUrl} 

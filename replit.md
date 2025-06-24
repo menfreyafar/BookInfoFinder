@@ -151,3 +151,12 @@ The application uses a relational database structure with the following core ent
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes
+- June 24, 2025. Settings system implementation
+  - **Logo Customization**: Added complete settings page with logo upload functionality
+  - **Brand Management**: Users can now customize logo URL, brand name, and subtitle through settings
+  - **Image Upload**: Implemented file upload with base64 storage, supporting PNG, JPG, SVG up to 5MB
+  - **Dynamic Branding**: Sidebar now displays custom logo and brand text from database settings
+  - **Real-time Updates**: Settings changes reflect immediately across the application
+  - **Logo Positioning**: Optimized logo size (96px) and spacing for compact brand presentation
