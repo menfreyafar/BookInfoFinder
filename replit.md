@@ -38,7 +38,10 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ Separação visual entre livros recebidos e dados nas trocas
 - ✅ Banco de dados estruturado com tabelas de exchange, pre_catalog_books
 - ✅ API completa para gerenciamento de trocas e pré-cadastros
-- ✅ Sistema funcional com fallback para modo manual quando necessário
+- ✅ **Análise avançada de precificação baseada em dados reais de mercado**
+- ✅ **Integração com preços Amazon Brasil e média Estante Virtual**
+- ✅ **Sistema de avaliação de rotatividade e facilidade de venda**
+- ✅ **Ajuste automático por condição física e demanda de mercado**
 
 ### Database Schema Updates
 - Tabela `exchanges`: registro de trocas
@@ -62,8 +65,10 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 ## Key Features
 1. **Sistema de Trocas**:
    - Upload de foto de pilha de livros
-   - Análise automática por IA (OpenAI Vision)
-   - Cálculo de valores baseado na política da loja
+   - Análise automática por IA (Gemini + OpenAI Vision)
+   - Precificação inteligente baseada em dados reais de mercado
+   - Análise de rotatividade e facilidade de venda por categoria
+   - Ajuste automático por condição física (novo/usado)
    - Gestão de livros dados em troca
    - Controle de estoque automático
 
@@ -80,9 +85,12 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
    - Arredondamento para múltiplo de R$ 5
 
 ## Technical Notes
-- Todas as imagens são processadas via OpenAI Vision API
+- Análise de imagens via Gemini 2.5 Flash + OpenAI Vision API (fallback)
+- Sistema avançado de precificação com análise de mercado
+- Integração com dados de preços Amazon Brasil e Estante Virtual
+- Avaliação automática de rotatividade por categoria de livro
 - Base64 encoding para upload de imagens
-- PostgreSQL constraints para integridade referencial
+- SQLite database para compatibilidade Replit
 - TypeScript para type safety
 - React Query para state management
 - Tailwind para styling responsivo
