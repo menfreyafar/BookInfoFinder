@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { calculateTradeValue } from './tradeCalculator';
+import { analyzeExchangePhotoWithGemini } from './geminiAnalysis';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'placeholder',
@@ -16,8 +17,24 @@ interface IdentifiedBook {
 }
 
 export async function analyzeExchangePhoto(imageBase64: string): Promise<IdentifiedBook[]> {
+  // Try Gemini first, then fallback to OpenAI if needed
+  if (process.env.GEMINI_API_KEY) {
+    console.log('Using Gemini for photo analysis');
+    try {
+      const result = await analyzeExchangePhotoWithGemini(imageBase64);
+      if (result.length > 0) {
+        console.log(`Gemini identified ${result.length} books`);
+        return result;
+      }
+    } catch (error) {
+      console.log('Gemini analysis failed, trying OpenAI fallback:', error);
+    }
+  }
+
+  // Fallback to OpenAI if Gemini is not available or failed
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OpenAI API key is required for book analysis');
+    console.log('No API keys configured - using manual mode');
+    return [];
   }
 
   try {
@@ -88,7 +105,8 @@ Seja preciso com os valores de mercado brasileiro e considere:
 
   } catch (error) {
     console.error('Erro na análise de troca:', error);
-    throw new Error('Falha ao analisar a foto dos livros');
+    console.log('Fallback to manual mode due to API error');
+    return [];
   }
 }
 

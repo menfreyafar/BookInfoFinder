@@ -379,8 +379,9 @@ export default function Exchanges() {
                   )}
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-sm text-blue-800">
-                      <strong>Modo Manual:</strong> Para esta versão, você pode criar trocas manualmente 
-                      adicionando os livros dados pelo cliente nos campos abaixo.
+                      <strong>Análise de foto:</strong> O sistema pode analisar fotos para identificar livros 
+                      e avaliar seu estado físico. Se a análise automática não estiver disponível, 
+                      use o modo manual abaixo.
                     </p>
                     <Button
                       type="button"
@@ -390,7 +391,7 @@ export default function Exchanges() {
                         books: [],
                         totalTradeValue: 0,
                         bookCount: 0,
-                        explanation: "Troca manual - adicione os livros dados pelo cliente abaixo"
+                        explanation: "Modo manual - adicione os livros dados pelo cliente abaixo"
                       })}
                     >
                       Criar Troca Manual

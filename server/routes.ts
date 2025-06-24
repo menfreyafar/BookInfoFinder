@@ -1192,8 +1192,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imageBase64 = req.file.buffer.toString('base64');
       const identifiedBooks = await analyzeExchangePhoto(imageBase64);
       
+      // If no books identified (API issues or manual mode), return empty result for manual entry
       if (identifiedBooks.length === 0) {
-        return res.status(400).json({ error: "Nenhum livro foi identificado na foto" });
+        return res.json({
+          books: [],
+          totalTradeValue: 0,
+          bookCount: 0,
+          explanation: "Análise automática não identificou livros na foto. Verifique a qualidade da imagem ou use o modo manual."
+        });
       }
 
       const tradeAnalysis = calculateBulkTradeValue(identifiedBooks);
