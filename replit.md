@@ -52,9 +52,9 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 
 ## User Preferences
 - Sistema de troca por foto implementado com modo manual
-- Livros que a pessoa receber devem ser retirados do acervo automaticamente
-- Livros da foto da pilha devem ficar em pré-cadastro para processamento posterior
-- Aba de trocas deve ter campos para inserir livros que a pessoa recebeu na troca
+- **Livros RECEBIDOS pelo cliente** (que saem do sebo) são removidos do estoque automaticamente
+- **Livros DADOS pelo cliente** (da foto) viram pré-cadastro para processamento posterior
+- Aba de trocas deve ter campos para inserir livros que o cliente está recebendo
 - Análise de valores deve considerar: preços Amazon (novos), média Estante Virtual, facilidade de venda
 - Precificação baseada em dados reais de mercado e demanda específica por categoria
 - Sempre manter ao menos um exemplar dos livros clássicos em estoque
