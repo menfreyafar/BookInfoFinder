@@ -36,6 +36,31 @@ export class EstanteVirtualService {
     }
   }
 
+  async loadCredentialsFromSettings() {
+    try {
+      const { storage } = await import("../storage");
+      const emailSetting = await storage.getSetting("estante_email");
+      const passwordSetting = await storage.getSetting("estante_password");
+      const sellerSetting = await storage.getSetting("estante_seller_id");
+
+      if (emailSetting?.value && passwordSetting?.value) {
+        this.credentials = {
+          email: emailSetting.value,
+          password: passwordSetting.value,
+          sellerId: sellerSetting?.value || undefined
+        };
+        console.log("Credenciais da Estante Virtual carregadas das configurações");
+        return true;
+      } else {
+        console.log("Credenciais da Estante Virtual não encontradas nas configurações");
+        return false;
+      }
+    } catch (error) {
+      console.error("Erro ao carregar credenciais da Estante Virtual:", error);
+      return false;
+    }
+  }
+
   // Set credentials manually
   setCredentials(credentials: EstanteVirtualCredentials) {
     this.credentials = credentials;

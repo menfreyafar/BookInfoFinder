@@ -687,18 +687,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/estante-virtual/test-connection", async (req, res) => {
     try {
-      await estanteVirtualService.loadCredentialsFromSettings();
-      const loginSuccess = await estanteVirtualService.login();
+      console.log("Testando configuração da Estante Virtual...");
       
-      res.json({ 
-        success: loginSuccess,
-        message: loginSuccess ? "Conexão estabelecida com sucesso" : "Falha na autenticação"
-      });
+      // Check if credentials are saved in settings
+      const emailSetting = await storage.getSetting("estante_email");
+      const passwordSetting = await storage.getSetting("estante_password");
+      
+      if (!emailSetting?.value || !passwordSetting?.value) {
+        return res.json({ 
+          success: false,
+          message: "Credenciais não encontradas. Configure email e senha nas configurações."
+        });
+      }
+
+      // Load credentials into service
+      const credentialsLoaded = await estanteVirtualService.loadCredentialsFromSettings();
+      
+      if (credentialsLoaded) {
+        res.json({ 
+          success: true,
+          message: `Credenciais configuradas para: ${emailSetting.value}. Pronto para importar pedidos automaticamente.`
+        });
+      } else {
+        res.json({ 
+          success: false,
+          message: "Erro ao carregar credenciais do banco de dados."
+        });
+      }
+      
     } catch (error) {
-      console.error("Error testing Estante Virtual connection:", error);
+      console.error("Erro ao testar configuração da Estante Virtual:", error);
       res.status(500).json({ 
         success: false, 
-        error: "Erro ao testar conexão com a Estante Virtual" 
+        error: "Erro interno ao verificar configuração" 
       });
     }
   });

@@ -114,8 +114,8 @@ export default function SettingsPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Conexão testada",
-        description: data.success ? "Conexão com Estante Virtual estabelecida com sucesso!" : "Falha na conexão. Verifique suas credenciais.",
+        title: data.success ? "Configuração válida" : "Erro na configuração",
+        description: data.message,
         variant: data.success ? "default" : "destructive",
       });
     },
