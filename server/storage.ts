@@ -4,6 +4,7 @@ import {
   sales, 
   saleItems, 
   categories,
+  settings,
   estanteVirtualOrders,
   estanteVirtualOrderItems,
   type Book, 
@@ -24,6 +25,7 @@ import {
   type SaleWithItems,
   type EstanteVirtualOrderWithItems
 } from "@shared/schema";
+import type { Setting, InsertSetting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, or, like, lt } from "drizzle-orm";
 
@@ -59,6 +61,11 @@ export interface IStorage {
   getEstanteVirtualOrder(id: number): Promise<EstanteVirtualOrderWithItems | undefined>;
   getAllEstanteVirtualOrders(): Promise<EstanteVirtualOrderWithItems[]>;
   updateEstanteVirtualOrder(id: number, order: Partial<InsertEstanteVirtualOrder>): Promise<EstanteVirtualOrder | undefined>;
+  
+  // Settings
+  getSetting(key: string): Promise<Setting | undefined>;
+  setSetting(key: string, value: string): Promise<Setting>;
+  getAllSettings(): Promise<Setting[]>;
   
   // Dashboard stats
   getDashboardStats(): Promise<{
@@ -375,6 +382,35 @@ export class DatabaseStorage implements IStorage {
       lowStockCount,
       estanteVirtualCount
     };
+  }
+
+  // Settings methods
+  async getSetting(key: string): Promise<Setting | undefined> {
+    const [setting] = await db.select().from(settings).where(eq(settings.key, key));
+    return setting || undefined;
+  }
+
+  async setSetting(key: string, value: string): Promise<Setting> {
+    const existing = await this.getSetting(key);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(settings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(settings.key, key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(settings)
+        .values({ key, value })
+        .returning();
+      return created;
+    }
+  }
+
+  async getAllSettings(): Promise<Setting[]> {
+    return await db.select().from(settings);
   }
 }
 

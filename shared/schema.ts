@@ -45,6 +45,14 @@ export const sales = pgTable("sales", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: text("value"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const saleItems = pgTable("sale_items", {
   id: serial("id").primaryKey(),
   saleId: integer("sale_id").references(() => sales.id).notNull(),
@@ -137,6 +145,12 @@ export const insertBookSchema = createInsertSchema(books).omit({
   updatedAt: true,
 });
 
+export const insertSettingsSchema = createInsertSchema(settings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertInventorySchema = createInsertSchema(inventory).omit({
   id: true,
   createdAt: true,
@@ -167,6 +181,9 @@ export const insertEstanteVirtualOrderItemSchema = createInsertSchema(estanteVir
 });
 
 // Types
+export type Setting = typeof settings.$inferSelect;
+export type InsertSetting = typeof settings.$inferInsert;
+
 export type Book = typeof books.$inferSelect;
 export type InsertBook = z.infer<typeof insertBookSchema>;
 export type Inventory = typeof inventory.$inferSelect;

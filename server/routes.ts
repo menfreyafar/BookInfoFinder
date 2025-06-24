@@ -6,7 +6,7 @@ import { analyzeBookCondition, generateBookDescription } from "./services/openai
 import { formatBooksForEstanteVirtual, generateExcelFile, generateCSVFile, generateSalesReport } from "./services/export";
 import { estanteVirtualService } from "./services/estanteVirtual";
 import { orderImporterService } from "./services/orderImporter";
-import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema } from "@shared/schema";
+import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 
@@ -682,6 +682,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating tracking code:", error);
       res.status(500).json({ error: "Erro ao atualizar código de rastreio" });
+    }
+  });
+
+  // Settings
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getAllSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ error: "Erro ao buscar configurações" });
+    }
+  });
+
+  app.get("/api/settings/:key", async (req, res) => {
+    try {
+      const { key } = req.params;
+      const setting = await storage.getSetting(key);
+      
+      if (!setting) {
+        return res.status(404).json({ error: "Configuração não encontrada" });
+      }
+      
+      res.json(setting);
+    } catch (error) {
+      console.error("Error fetching setting:", error);
+      res.status(500).json({ error: "Erro ao buscar configuração" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      const { key, value } = req.body;
+      
+      if (!key || value === undefined) {
+        return res.status(400).json({ error: "Chave e valor são obrigatórios" });
+      }
+      
+      const setting = await storage.setSetting(key, value);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error setting configuration:", error);
+      res.status(500).json({ error: "Erro ao salvar configuração" });
     }
   });
 

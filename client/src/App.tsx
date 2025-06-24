@@ -11,6 +11,7 @@ import Inventory from "@/pages/inventory";
 import POS from "@/pages/pos";
 import Export from "@/pages/export";
 import Orders from "@/pages/orders";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -26,7 +27,7 @@ function Router() {
           <Route path="/pos" component={POS} />
           <Route path="/orders" component={Orders} />
           <Route path="/export" component={Export} />
-          <Route path="/settings" component={() => <div className="p-6">Configurações em desenvolvimento</div>} />
+          <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </div>
