@@ -731,11 +731,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload logo image
   app.post("/api/settings/upload-logo", upload.single('logo'), async (req, res) => {
     try {
+      console.log("Upload endpoint hit, file:", req.file ? "present" : "missing");
+      
       if (!req.file) {
+        console.log("No file received");
         return res.status(400).json({ error: "Nenhum arquivo enviado" });
       }
 
       const file = req.file;
+      console.log("File details:", { name: file.originalname, type: file.mimetype, size: file.size });
       
       // Validate file type
       if (!file.mimetype.startsWith('image/')) {
@@ -751,8 +755,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const base64 = file.buffer.toString('base64');
       const dataUrl = `data:${file.mimetype};base64,${base64}`;
 
+      console.log("Saving to database...");
       // Save the data URL as logo_url setting
       const setting = await storage.setSetting('logo_url', dataUrl);
+      console.log("Setting saved:", setting.id);
       
       res.json({ 
         success: true, 

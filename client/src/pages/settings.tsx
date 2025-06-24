@@ -89,20 +89,39 @@ export default function SettingsPage() {
   // Mutation to upload logo image
   const uploadLogo = useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('logo', file);
-      
-      const response = await fetch("/api/settings/upload-logo", {
-        method: "POST",
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erro ao fazer upload da imagem");
+      try {
+        const formData = new FormData();
+        formData.append('logo', file);
+        
+        console.log("Sending request to upload logo...");
+        const response = await fetch("/api/settings/upload-logo", {
+          method: "POST",
+          body: formData,
+          headers: {
+            // Don't set Content-Type, let browser set it with boundary for multipart
+          },
+        });
+        console.log("Response status:", response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = "Erro ao fazer upload da imagem";
+          
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
       }
-      
-      return response.json();
     },
     onSuccess: (data) => {
       setLogoUrl(data.logoUrl);
@@ -124,6 +143,8 @@ export default function SettingsPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log("File selected:", file.name, file.type, file.size);
+      
       // Validate file type
       if (!file.type.startsWith('image/')) {
         toast({
@@ -145,6 +166,9 @@ export default function SettingsPage() {
       }
 
       uploadLogo.mutate(file);
+      
+      // Clear the input after upload attempt
+      event.target.value = '';
     }
   };
 
