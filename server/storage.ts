@@ -7,6 +7,8 @@ import {
   settings,
   estanteVirtualOrders,
   estanteVirtualOrderItems,
+  exchanges,
+  exchangeItems,
   type Book, 
   type InsertBook,
   type Inventory,
@@ -23,11 +25,16 @@ import {
   type InsertEstanteVirtualOrderItem,
   type BookWithInventory,
   type SaleWithItems,
-  type EstanteVirtualOrderWithItems
+  type EstanteVirtualOrderWithItems,
+  type Exchange,
+  type InsertExchange,
+  type ExchangeItem,
+  type InsertExchangeItem,
+  type ExchangeWithItems
 } from "@shared/schema";
 import type { Setting, InsertSetting } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, or, like, lt } from "drizzle-orm";
+import { eq, desc, asc, and, or, like, lt, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Books
@@ -66,6 +73,13 @@ export interface IStorage {
   getSetting(key: string): Promise<Setting | undefined>;
   setSetting(key: string, value: string): Promise<Setting>;
   getAllSettings(): Promise<Setting[]>;
+
+  // Exchanges
+  createExchange(exchange: InsertExchange, items: InsertExchangeItem[]): Promise<ExchangeWithItems>;
+  getExchange(id: number): Promise<ExchangeWithItems | undefined>;
+  getAllExchanges(): Promise<ExchangeWithItems[]>;
+  updateExchange(id: number, exchange: Partial<InsertExchange>): Promise<Exchange | undefined>;
+  deleteExchange(id: number): Promise<boolean>;
   
   // Dashboard stats
   getDashboardStats(): Promise<{
@@ -411,6 +425,108 @@ export class DatabaseStorage implements IStorage {
 
   async getAllSettings(): Promise<Setting[]> {
     return await db.select().from(settings);
+  }
+
+  async getDashboardStats() {
+    const [totalBooksResult] = await db.select({ count: sql<number>`count(*)` }).from(books);
+    const totalBooks = totalBooksResult.count;
+
+    // Get today's sales
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [dailySalesResult] = await db
+      .select({ sum: sql<number>`coalesce(sum(${sales.totalAmount}), 0)` })
+      .from(sales)
+      .where(and(
+        sql`${sales.createdAt} >= ${today}`,
+        sql`${sales.createdAt} < ${tomorrow}`
+      ));
+    const dailySales = dailySalesResult.sum;
+
+    // Get low stock count (threshold of 5)
+    const lowStockBooks = await db
+      .select()
+      .from(inventory)
+      .where(lt(inventory.quantity, 5));
+    const lowStockCount = lowStockBooks.length;
+
+    // Get books sent to Estante Virtual
+    const [estanteVirtualResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(inventory)
+      .where(eq(inventory.sentToEstanteVirtual, true));
+    const estanteVirtualCount = estanteVirtualResult.count;
+
+    return {
+      totalBooks,
+      dailySales,
+      lowStockCount,
+      estanteVirtualCount
+    };
+  }
+
+  // Exchanges
+  async createExchange(exchange: InsertExchange, items: InsertExchangeItem[]): Promise<ExchangeWithItems> {
+    const [newExchange] = await db.insert(exchanges).values(exchange).returning();
+    
+    const exchangeItemsWithId = items.map(item => ({
+      ...item,
+      exchangeId: newExchange.id
+    }));
+    
+    const newItems = await db.insert(exchangeItems).values(exchangeItemsWithId).returning();
+    
+    return {
+      ...newExchange,
+      items: newItems
+    };
+  }
+
+  async getExchange(id: number): Promise<ExchangeWithItems | undefined> {
+    const [exchange] = await db.select().from(exchanges).where(eq(exchanges.id, id));
+    if (!exchange) return undefined;
+    
+    const items = await db.select().from(exchangeItems).where(eq(exchangeItems.exchangeId, id));
+    
+    return {
+      ...exchange,
+      items
+    };
+  }
+
+  async getAllExchanges(): Promise<ExchangeWithItems[]> {
+    const allExchanges = await db.select().from(exchanges).orderBy(desc(exchanges.createdAt));
+    
+    const exchangesWithItems = await Promise.all(
+      allExchanges.map(async (exchange) => {
+        const items = await db.select().from(exchangeItems).where(eq(exchangeItems.exchangeId, exchange.id));
+        return {
+          ...exchange,
+          items
+        };
+      })
+    );
+    
+    return exchangesWithItems;
+  }
+
+  async updateExchange(id: number, exchange: Partial<InsertExchange>): Promise<Exchange | undefined> {
+    const [updatedExchange] = await db
+      .update(exchanges)
+      .set({ ...exchange, updatedAt: new Date() })
+      .where(eq(exchanges.id, id))
+      .returning();
+    return updatedExchange || undefined;
+  }
+
+  async deleteExchange(id: number): Promise<boolean> {
+    // Delete items first due to foreign key constraint
+    await db.delete(exchangeItems).where(eq(exchangeItems.exchangeId, id));
+    const result = await db.delete(exchanges).where(eq(exchanges.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
 

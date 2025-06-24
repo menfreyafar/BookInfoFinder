@@ -3,11 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { searchBookByISBN, searchBrazilianBookPrices } from "./services/bookApi";
 import { analyzeBookFromImage, analyzeBookCondition, generateBookDescription } from "./services/openai";
+import { analyzeExchangePhoto, calculateBulkTradeValue, generateTradeExplanation } from "./services/exchangeAnalysis";
+import { calculateTradeValue } from "./services/tradeCalculator";
 import { formatBooksForEstanteVirtual, generateExcelFile, generateCSVFile, generateSalesReport } from "./services/export";
 import { estanteVirtualService } from "./services/estanteVirtual";
 import { orderImporterService } from "./services/orderImporter";
 import { dailyExportScheduler } from "./services/scheduler";
-import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema } from "@shared/schema";
+import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema, insertExchangeSchema, insertExchangeItemSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 

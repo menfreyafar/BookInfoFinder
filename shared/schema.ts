@@ -93,6 +93,35 @@ export const estanteVirtualOrderItems = pgTable("estante_virtual_order_items", {
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
 });
 
+export const exchanges = pgTable("exchanges", {
+  id: serial("id").primaryKey(),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone"),
+  totalTradeValue: decimal("total_trade_value", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, completed, cancelled
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const exchangeItems = pgTable("exchange_items", {
+  id: serial("id").primaryKey(),
+  exchangeId: integer("exchange_id").references(() => exchanges.id).notNull(),
+  bookTitle: text("book_title").notNull(),
+  bookAuthor: text("book_author"),
+  estimatedSaleValue: decimal("estimated_sale_value", { precision: 10, scale: 2 }).notNull(),
+  publishYear: integer("publish_year"),
+  condition: varchar("condition", { length: 20 }).notNull(), // novo, usado
+  isCompleteSeries: boolean("is_complete_series").default(false),
+  basePercentage: integer("base_percentage").notNull(),
+  valueBonus: integer("value_bonus").default(0),
+  yearBonus: integer("year_bonus").default(0),
+  finalPercentage: integer("final_percentage").notNull(),
+  calculatedTradeValue: decimal("calculated_trade_value", { precision: 10, scale: 2 }).notNull(),
+  finalTradeValue: decimal("final_trade_value", { precision: 10, scale: 2 }).notNull(),
+});
+
 // Relations
 export const booksRelations = relations(books, ({ one, many }) => ({
   inventory: one(inventory, {
@@ -139,6 +168,17 @@ export const estanteVirtualOrderItemsRelations = relations(estanteVirtualOrderIt
   }),
 }));
 
+export const exchangesRelations = relations(exchanges, ({ many }) => ({
+  items: many(exchangeItems),
+}));
+
+export const exchangeItemsRelations = relations(exchangeItems, ({ one }) => ({
+  exchange: one(exchanges, {
+    fields: [exchangeItems.exchangeId],
+    references: [exchanges.id],
+  }),
+}));
+
 // Schemas
 export const insertBookSchema = createInsertSchema(books).omit({
   id: true,
@@ -164,6 +204,16 @@ export const insertSaleSchema = createInsertSchema(sales).omit({
 });
 
 export const insertSaleItemSchema = createInsertSchema(saleItems).omit({
+  id: true,
+});
+
+export const insertExchangeSchema = createInsertSchema(exchanges).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExchangeItemSchema = createInsertSchema(exchangeItems).omit({
   id: true,
 });
 
@@ -212,4 +262,13 @@ export type InsertEstanteVirtualOrderItem = z.infer<typeof insertEstanteVirtualO
 
 export type EstanteVirtualOrderWithItems = EstanteVirtualOrder & {
   items: (EstanteVirtualOrderItem & { book: Book })[];
+};
+
+export type Exchange = typeof exchanges.$inferSelect;
+export type InsertExchange = z.infer<typeof insertExchangeSchema>;
+export type ExchangeItem = typeof exchangeItems.$inferSelect;
+export type InsertExchangeItem = z.infer<typeof insertExchangeItemSchema>;
+
+export type ExchangeWithItems = Exchange & {
+  items: ExchangeItem[];
 };

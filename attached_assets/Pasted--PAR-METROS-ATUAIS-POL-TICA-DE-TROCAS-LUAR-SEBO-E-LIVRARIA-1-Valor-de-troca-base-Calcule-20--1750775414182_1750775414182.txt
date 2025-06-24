@@ -1,0 +1,78 @@
+✅ PARÂMETROS ATUAIS – POLÍTICA DE TROCAS LUAR SEBO E LIVRARIA
+1. 📦 Valor de troca base
+Calcule 20% do valor estimado de venda do livro.
+
+2. 📈 Progressão de percentual conforme o valor do livro
+Para livros com valor de venda acima de R$ 30, aplique +10% no percentual para cada R$ 10 excedentes.
+
+Valor estimado de venda	Percentual aplicado
+R$ 30 ou menos	20%
+R$ 40	30%
+R$ 50	40%
+R$ 60	50% (máximo)
+
+Limite máximo total: 50%
+
+3. 📅 Acréscimos com base no ano de lançamento
+Ano 2024–2025 → +10% no percentual total
+
+Ano 2022–2023 → +5% no percentual total
+
+Antes de 2022 → sem bônus
+
+⚠️ Esse bônus é aplicado sobre o percentual total, respeitando o limite de 50% final.
+
+4. 📚 Acréscimos por tipo de material (opcional para usar no app)
+Você pode configurar isso como uma lógica condicional extra se quiser tornar o app mais dinâmico.
+
+Livro em série completa (todos os volumes) → aplicar 50% direto
+
+Livro com altíssima rotatividade + estado de novo → aplicar até 50%, mesmo sem bater todos os critérios anteriores
+
+Estado de novo visível → reforça aplicação do máximo permitido (não soma, mas justifica)
+
+5. 🧾 Arredondamento do valor total
+Sempre arredonde o total final do crédito para cima, no múltiplo de R$ 5 mais próximo.
+
+Ex:
+
+Total R$ 63,00 → arredonda para R$ 65,00
+
+Total R$ 71,00 → arredonda para R$ 75,00
+
+🔁 Cálculo passo a passo (fluxo para implementar no app)
+Usuário insere:
+
+Título do livro
+
+Valor estimado de venda
+
+Ano de lançamento
+
+Se é parte de série completa
+
+Estado (usado ou novo)
+
+App calcula:
+
+% base (20%)
+
+Acrescenta +10% por cada R$ 10 acima de R$ 30
+
+Acrescenta bônus por ano de lançamento
+
+Aplica limite máximo de 50%
+
+Multiplica % pelo valor de venda estimado
+
+Arredonda o total final da troca para o múltiplo de R$ 5 mais próximo
+
+🛠️ Sugestão de campos no app (em Replit ou Google Sheets)
+Campo	Tipo de dado
+Nome do livro	Texto
+Valor estimado de venda	Numérico (R$)
+Ano de lançamento	Numérico (AAAA)
+Estado físico	Menu (Novo / Usado)
+Parte de série completa?	Sim / Não
+Valor calculado para troca	Calculado
+
