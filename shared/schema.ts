@@ -162,6 +162,18 @@ export const preCatalogBooks = pgTable("pre_catalog_books", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const missingBooks = pgTable("missing_books", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  author: text("author").notNull(),
+  isbn: text("isbn"),
+  category: text("category").default("Clássico"),
+  priority: integer("priority").default(1), // 1 = alta, 2 = média, 3 = baixa
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastChecked: timestamp("last_checked"),
+});
+
 // Relations
 export const booksRelations = relations(books, ({ one, many }) => ({
   inventory: one(inventory, {
@@ -301,6 +313,12 @@ export const insertEstanteVirtualOrderItemSchema = createInsertSchema(estanteVir
   id: true,
 });
 
+export const insertMissingBookSchema = createInsertSchema(missingBooks).omit({
+  id: true,
+  createdAt: true,
+  lastChecked: true,
+});
+
 // Types
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;
@@ -342,6 +360,9 @@ export type ExchangeGivenBook = typeof exchangeGivenBooks.$inferSelect;
 export type InsertExchangeGivenBook = z.infer<typeof insertExchangeGivenBookSchema>;
 export type PreCatalogBook = typeof preCatalogBooks.$inferSelect;
 export type InsertPreCatalogBook = z.infer<typeof insertPreCatalogBookSchema>;
+
+export type MissingBook = typeof missingBooks.$inferSelect;
+export type InsertMissingBook = z.infer<typeof insertMissingBookSchema>;
 
 export type ExchangeWithItems = Exchange & {
   items: ExchangeItem[];

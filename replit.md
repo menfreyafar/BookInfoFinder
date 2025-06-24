@@ -19,13 +19,15 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - **File Uploads**: Multer
 
 ## Recent Changes
-### 2025-01-24 - Sistema de Trocas Completamente Implementado
+### 2025-01-24 - Sistema de Trocas e Livros em Falta Implementados
 - ✅ Criada nova aba "Trocas" no menu principal
 - ✅ Implementada análise automática de foto de pilhas de livros usando OpenAI Vision
 - ✅ Sistema de cálculo de valores de troca baseado na política Luar Sebo
 - ✅ Gestão automática de estoque (livros dados são removidos)
 - ✅ Sistema de pré-cadastros para livros identificados na foto
 - ✅ Nova aba "Pré-Cadastros" para processar livros pendentes
+- ✅ Nova aba "Livros em Falta" para gerenciar clássicos essenciais
+- ✅ Importação automática de 80+ livros clássicos obrigatórios
 - ✅ Interface completa funcionando com todas as APIs
 - ✅ Upload de logos e configurações funcionais
 - ⚠️ OpenAI API necessita créditos para análise de fotos
@@ -35,11 +37,14 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - Tabela `exchange_items`: itens recebidos na troca
 - Tabela `exchange_given_books`: livros dados na troca
 - Tabela `pre_catalog_books`: livros em pré-cadastro
+- Tabela `missing_books`: livros clássicos que devem sempre estar em estoque
 
 ## User Preferences
 - Sistema deve usar análise de foto para identificar livros em trocas
 - Livros dados na troca devem ser removidos automaticamente do estoque
 - Livros da foto devem ficar em pré-cadastro para processamento posterior
+- Sempre manter ao menos um exemplar dos livros clássicos em estoque
+- Lista de clássicos deve incluir literatura brasileira, estrangeira, filosofia e infantil
 - Interface em português brasileiro
 - Design clean e funcional
 

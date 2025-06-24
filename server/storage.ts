@@ -93,6 +93,12 @@ export interface IStorage {
   processPreCatalogBook(id: number, bookData: InsertBook): Promise<Book>;
   rejectPreCatalogBook(id: number, reason: string): Promise<boolean>;
   
+  // Missing books
+  getMissingBooks(): Promise<MissingBook[]>;
+  createMissingBook(book: InsertMissingBook): Promise<MissingBook>;
+  updateMissingBook(id: number, book: Partial<InsertMissingBook>): Promise<MissingBook | undefined>;
+  deleteMissingBook(id: number): Promise<boolean>;
+  
   // Dashboard stats
   getDashboardStats(): Promise<{
     totalBooks: number;

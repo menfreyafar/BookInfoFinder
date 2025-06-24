@@ -13,6 +13,7 @@ import Export from "@/pages/export";
 import Orders from "@/pages/orders";
 import Exchanges from "@/pages/exchanges";
 import PreCatalog from "@/pages/pre-catalog";
+import MissingBooks from "@/pages/missing-books";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
