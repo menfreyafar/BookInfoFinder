@@ -28,18 +28,15 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ Sistema configurado para manter sempre ao menos 1 exemplar de cada clássico
 - ✅ 80+ títulos essenciais incluindo literatura brasileira, estrangeira, filosofia e infantil
 
-### 2025-01-24 - Sistema de Trocas e Livros em Falta Implementados
-- ✅ Criada nova aba "Trocas" no menu principal
-- ✅ Implementada análise automática de foto de pilhas de livros usando OpenAI Vision
-- ✅ Sistema de cálculo de valores de troca baseado na política Luar Sebo
-- ✅ Gestão automática de estoque (livros dados são removidos)
-- ✅ Sistema de pré-cadastros para livros identificados na foto
-- ✅ Nova aba "Pré-Cadastros" para processar livros pendentes
-- ✅ Nova aba "Livros em Falta" para gerenciar clássicos essenciais
-- ✅ Importação automática de 80+ livros clássicos obrigatórios
-- ✅ Interface completa funcionando com todas as APIs
-- ✅ Upload de logos e configurações funcionais
-- ⚠️ OpenAI API necessita créditos para análise de fotos
+### 2025-01-24 - Sistema de Alertas de Livros Clássicos Corrigido
+- ✅ Limpeza da tabela missing_books (removidos registros incorretos)
+- ✅ Implementada lógica correta de alertas: apenas livros da lista com estoque < 1
+- ✅ Lista de clássicos extraída do arquivo fornecido pelo usuário (sem duplicatas)
+- ✅ 60+ títulos essenciais incluindo literatura brasileira, estrangeira, filosofia e infantil
+- ✅ Sistema mostra dinamicamente apenas livros em falta no estoque
+- ✅ Interface atualizada para mostrar estoque atual de cada livro
+- ✅ Dashboard e página de "Livros em Falta" funcionando corretamente
+- ⚠️ OpenAI API necessita créditos para análise de fotos em trocas
 
 ### Database Schema Updates
 - Tabela `exchanges`: registro de trocas

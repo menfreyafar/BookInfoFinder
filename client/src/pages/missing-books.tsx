@@ -198,8 +198,8 @@ export default function MissingBooks() {
     deleteMutation.mutate(id);
   };
 
-  const handleImportClassics = () => {
-    importClassicsMutation.mutate();
+  const handleRefreshList = () => {
+    refreshMutation.mutate();
   };
 
   const getPriorityBadge = (priority: number) => {
@@ -250,18 +250,20 @@ export default function MissingBooks() {
             <BookOpen className="h-8 w-8 text-blue-600" />
             <div>
               <h3 className="text-lg font-semibold">Livros Essenciais</h3>
-              <p className="text-gray-600">Total: {missingBooks.length} livros</p>
+              <p className="text-gray-600">
+              {missingBooks?.length || 0} livros com estoque insuficiente (menos de 1 exemplar)
+            </p>
             </div>
           </div>
           
           <div className="flex gap-3">
             <Button
-              onClick={handleImportClassics}
+              onClick={handleRefreshList}
               variant="outline"
-              disabled={importClassicsMutation.isPending}
+              disabled={refreshMutation.isPending}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {importClassicsMutation.isPending ? "Importando..." : "Importar Clássicos"}
+              {refreshMutation.isPending ? "Atualizando..." : "Atualizar Lista"}
             </Button>
             
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -415,11 +417,19 @@ export default function MissingBooks() {
                   </span>
                   {getPriorityBadge(book.priority)}
                 </div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs text-gray-500">
+                    Categoria: {book.category}
+                  </div>
+                  <div className="text-xs font-medium text-red-600">
+                    Estoque atual: {book.currentStock || 0}
+                  </div>
+                </div>
                 {book.notes && (
                   <p className="text-sm text-gray-600 mb-3">{book.notes}</p>
                 )}
                 <div className="text-xs text-gray-500">
-                  Adicionado em {new Date(book.createdAt).toLocaleDateString('pt-BR')}
+                  Verificado em {new Date(book.lastChecked || book.createdAt).toLocaleDateString('pt-BR')}
                 </div>
               </CardContent>
             </Card>

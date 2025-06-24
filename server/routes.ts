@@ -455,26 +455,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Missing Books API
-  app.get("/api/missing-books", (req, res) => {
-    const Database = require('better-sqlite3');
-    const path = require('path');
-    
-    let sqlite;
+  // Missing Books API - Mostra livros da lista de clássicos que têm menos de 1 em estoque
+  app.get("/api/missing-books", async (req, res) => {
     try {
-      const dbPath = path.join(process.cwd(), 'database.sqlite');
-      sqlite = new Database(dbPath);
+      // Lista de clássicos essenciais (extraída do arquivo fornecido pelo usuário, sem duplicatas)
+      const classicBooks = [
+        // Literatura Brasileira
+        "Dom Casmurro",
+        "Memórias Póstumas de Brás Cubas", 
+        "O Guarani",
+        "Iracema",
+        "Vidas Secas",
+        "Grande Sertão: Veredas",
+        "Capitães da Areia",
+        "Gabriela, Cravo e Canela",
+        "O Cortiço",
+        "Senhora",
+        "Macunaíma",
+        "A Hora da Estrela",
+        "Laços de Família",
+        "Auto da Compadecida",
+        "Meu Pé de Laranja Lima",
+        "São Bernardo",
+        "Várias Histórias",
+        "Quincas Borba",
+        "Lucíola",
+        "O Primo Basílio",
+        "Alguma Poesia",
+        "Ou Isto ou Aquilo",
+        "Apontamentos de História Sobrenatural",
+        "Contos Gauchescos",
+        "O Tempo e o Vento",
+        "Fogo Morto",
+        "Morte e Vida Severina",
+        
+        // Literatura Estrangeira
+        "Dom Quixote",
+        "Os Miseráveis",
+        "O Conde de Monte Cristo",
+        "Orgulho e Preconceito",
+        "Emma",
+        "Jane Eyre",
+        "O Morro dos Ventos Uivantes",
+        "1984",
+        "A Revolução dos Bichos",
+        "Admirável Mundo Novo",
+        "O Pequeno Príncipe",
+        "Crime e Castigo",
+        "Os Irmãos Karamázov",
+        "Guerra e Paz",
+        "O Velho e o Mar",
+        "O Grande Gatsby",
+        "Moby Dick",
+        "Frankenstein",
+        "Drácula",
+        "O Senhor dos Anéis",
+        "O Hobbit",
+        "As Crônicas de Nárnia",
+        "Harry Potter",
+        "Hamlet",
+        "Romeu e Julieta",
+        
+        // Filosofia e Pensamento
+        "A República",
+        "Ética a Nicômaco",
+        "Assim Falou Zaratustra",
+        "O Mundo de Sofia",
+        "Meditações",
+        "O Príncipe",
+        
+        // Infantis
+        "Alice no País das Maravilhas",
+        "Peter Pan",
+        "As Aventuras de Pinóquio",
+        "As Aventuras de Tom Sawyer"
+      ];
+
+      // Buscar quais desses livros têm estoque menor que 1
+      const missingBooks = [];
       
-      const missingBooks = sqlite.prepare('SELECT * FROM missing_books ORDER BY priority, title').all();
+      for (let i = 0; i < classicBooks.length; i++) {
+        const bookTitle = classicBooks[i];
+        try {
+          const books = await storage.searchBooks(bookTitle);
+          const totalStock = books.reduce((sum, book) => {
+            return sum + (book.inventory?.quantity || 0);
+          }, 0);
+          
+          if (totalStock < 1) {
+            missingBooks.push({
+              id: i + 1,
+              title: bookTitle,
+              author: "Diversos",
+              isbn: null,
+              category: "Clássico",
+              priority: 1,
+              notes: "Livro clássico essencial - deve sempre ter em estoque",
+              createdAt: Date.now(),
+              lastChecked: Date.now(),
+              currentStock: totalStock
+            });
+          }
+        } catch (error) {
+          console.error(`Erro ao buscar livro ${bookTitle}:`, error);
+        }
+      }
       
       res.json(missingBooks);
     } catch (error) {
       console.error("Error fetching missing books:", error);
       res.status(500).json({ error: "Erro ao buscar livros em falta" });
-    } finally {
-      if (sqlite) {
-        sqlite.close();
-      }
     }
   });
 
