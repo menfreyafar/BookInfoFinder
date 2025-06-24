@@ -258,14 +258,14 @@ export default function SettingsPage() {
                       <img 
                         src={logoUrl} 
                         alt="Logo preview" 
-                        className="w-12 h-12 object-contain"
+                        className="w-16 h-16 object-contain"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-orange-200 rounded-lg flex items-center justify-center">
-                        <Image className="w-6 h-6 text-orange-600" />
+                      <div className="w-16 h-16 bg-orange-200 rounded-lg flex items-center justify-center">
+                        <Image className="w-8 h-8 text-orange-600" />
                         <span className="sr-only">Espaço para logo</span>
                       </div>
                     )}

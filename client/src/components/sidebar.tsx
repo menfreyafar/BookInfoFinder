@@ -57,7 +57,7 @@ export default function Sidebar() {
             <img 
               src={logoUrl} 
               alt="Logo" 
-              className="w-12 h-12 object-contain"
+              className="w-16 h-16 object-contain"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
