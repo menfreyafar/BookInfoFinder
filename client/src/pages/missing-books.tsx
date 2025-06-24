@@ -152,25 +152,24 @@ export default function MissingBooks() {
     }
   });
 
-  // Import classics mutation
-  const importClassicsMutation = useMutation({
+  // Refresh mutation - atualiza a lista de livros em falta
+  const refreshMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('/api/missing-books/import-classics', {
-        method: 'POST'
-      });
+      const response = await fetch('/api/missing-books');
+      if (!response.ok) throw new Error('Failed to refresh');
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Sucesso",
-        description: `${data.imported} livros clássicos importados`
+        description: "Lista de livros em falta atualizada"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/missing-books'] });
     },
     onError: () => {
       toast({
         title: "Erro",
-        description: "Erro ao importar clássicos",
+        description: "Erro ao atualizar lista",
         variant: "destructive"
       });
     }
@@ -201,6 +200,7 @@ export default function MissingBooks() {
   const handleRefreshList = () => {
     refreshMutation.mutate();
   };
+
 
   const getPriorityBadge = (priority: number) => {
     switch (priority) {
