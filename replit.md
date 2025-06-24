@@ -160,3 +160,6 @@ Preferred communication style: Simple, everyday language.
   - **Dynamic Branding**: Sidebar now displays custom logo and brand text from database settings
   - **Real-time Updates**: Settings changes reflect immediately across the application
   - **Logo Positioning**: Optimized logo size (96px) and spacing for compact brand presentation
+  - **Estante Virtual Integration**: Added settings section for Estante Virtual account connection
+  - **Connection Testing**: Implemented test connection functionality to verify credentials
+  - **Automatic Credential Loading**: Service automatically loads credentials from database settings

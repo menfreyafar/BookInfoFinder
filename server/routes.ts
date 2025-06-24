@@ -685,6 +685,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/estante-virtual/test-connection", async (req, res) => {
+    try {
+      await estanteVirtualService.loadCredentialsFromSettings();
+      const loginSuccess = await estanteVirtualService.login();
+      
+      res.json({ 
+        success: loginSuccess,
+        message: loginSuccess ? "Conexão estabelecida com sucesso" : "Falha na autenticação"
+      });
+    } catch (error) {
+      console.error("Error testing Estante Virtual connection:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Erro ao testar conexão com a Estante Virtual" 
+      });
+    }
+  });
+
   // Settings
   app.get("/api/settings", async (req, res) => {
     try {
