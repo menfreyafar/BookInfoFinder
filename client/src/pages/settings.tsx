@@ -104,8 +104,7 @@ export default function Settings() {
       const promises = settings.map(setting =>
         apiRequest('/api/settings', {
           method: 'POST',
-          body: JSON.stringify(setting),
-          headers: { 'Content-Type': 'application/json' }
+          data: setting
         })
       );
       
