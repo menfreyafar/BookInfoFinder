@@ -1297,15 +1297,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const exchangeId = parseInt(req.params.id);
       const result = await storage.processExchangeInventory(exchangeId);
-      
-      if (result.success) {
-        res.json(result);
-      } else {
-        res.status(400).json(result);
-      }
+      res.json(result);
     } catch (error) {
       console.error("Error processing exchange inventory:", error);
       res.status(500).json({ error: "Erro ao processar estoque da troca" });
+    }
+  });
+
+  // Pre-catalog books API
+  app.get("/api/pre-catalog-books", async (req, res) => {
+    try {
+      const books = await storage.getPreCatalogBooks();
+      res.json(books);
+    } catch (error) {
+      console.error("Error fetching pre-catalog books:", error);
+      res.status(500).json({ error: "Erro ao buscar pré-cadastros" });
+    }
+  });
+
+  app.post("/api/pre-catalog-books/:id/process", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const bookData = req.body;
+      
+      const validatedData = insertBookSchema.parse(bookData);
+      const newBook = await storage.processPreCatalogBook(id, validatedData);
+      
+      res.json(newBook);
+    } catch (error) {
+      console.error("Error processing pre-catalog book:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Erro ao processar livro" });
+      }
+    }
+  });
+
+  app.post("/api/pre-catalog-books/:id/reject", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      if (!reason) {
+        return res.status(400).json({ error: "Motivo da rejeição é obrigatório" });
+      }
+      
+      const result = await storage.rejectPreCatalogBook(id, reason);
+      
+      if (!result) {
+        return res.status(404).json({ error: "Livro não encontrado" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error rejecting pre-catalog book:", error);
+      res.status(500).json({ error: "Erro ao rejeitar livro" });
     }
   });
 

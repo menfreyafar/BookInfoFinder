@@ -377,10 +377,10 @@ export default function Exchanges() {
                       Arquivo selecionado: {selectedFile.name}
                     </p>
                   )}
-                  <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <p className="text-sm text-yellow-800">
-                      <strong>Temporariamente:</strong> A análise automática de fotos está limitada por cota da API. 
-                      Você pode criar trocas manualmente adicionando os livros dados pelo cliente.
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <strong>Modo Manual:</strong> Para esta versão, você pode criar trocas manualmente 
+                      adicionando os livros dados pelo cliente nos campos abaixo.
                     </p>
                     <Button
                       type="button"

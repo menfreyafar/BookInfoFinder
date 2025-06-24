@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Check, X, Edit, BookOpen, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Check, X, Plus, BookOpen, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PreCatalogBook {
@@ -20,49 +19,38 @@ interface PreCatalogBook {
   estimatedSaleValue: number;
   publishYear?: number;
   condition: 'novo' | 'usado';
-  isCompleteSeries: boolean;
   finalTradeValue: number;
   status: 'pending' | 'processed' | 'rejected';
+  confidence?: number;
   category?: string;
-  synopsis?: string;
-  coverImage?: string;
   isbn?: string;
   publisher?: string;
-  edition?: string;
-  weight?: number;
-  shelf?: string;
-  confidence: number;
-  notes?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export default function PreCatalog() {
-  const [selectedBook, setSelectedBook] = useState<PreCatalogBook | null>(null);
   const [showProcessDialog, setShowProcessDialog] = useState(false);
-  const [bookFormData, setBookFormData] = useState({
+  const [selectedBook, setSelectedBook] = useState<PreCatalogBook | null>(null);
+  const [bookData, setBookData] = useState({
     title: '',
     author: '',
     publisher: '',
-    publishYear: '',
-    edition: '',
+    isbn: '',
     category: '',
     synopsis: '',
-    usedPrice: '',
-    newPrice: '',
-    condition: 'usado',
-    weight: '',
-    shelf: '',
-    isbn: ''
+    usedPrice: 0,
+    newPrice: 0,
+    weight: 0,
+    shelf: ''
   });
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: preCatalogBooks = [], isLoading } = useQuery<PreCatalogBook[]>({
     queryKey: ['pre-catalog-books'],
     queryFn: async () => {
       const response = await fetch('/api/pre-catalog-books');
-      if (!response.ok) throw new Error('Erro ao carregar livros em pré-cadastro');
+      if (!response.ok) throw new Error('Erro ao carregar pré-cadastros');
       return response.json();
     }
   });
@@ -84,19 +72,18 @@ export default function PreCatalog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pre-catalog-books'] });
-      queryClient.invalidateQueries({ queryKey: ['books'] });
       setShowProcessDialog(false);
       setSelectedBook(null);
       toast({
         title: "Sucesso",
-        description: "Livro processado e adicionado ao catálogo"
+        description: "Livro adicionado ao catálogo principal",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Erro",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   });
@@ -109,66 +96,71 @@ export default function PreCatalog() {
         body: JSON.stringify({ reason })
       });
       
-      if (!response.ok) throw new Error('Erro ao rejeitar livro');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao rejeitar livro');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pre-catalog-books'] });
       toast({
-        title: "Sucesso",
-        description: "Livro rejeitado"
+        title: "Livro Rejeitado",
+        description: "Livro removido do pré-cadastro",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Erro",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   });
 
   const handleProcessBook = (book: PreCatalogBook) => {
     setSelectedBook(book);
-    setBookFormData({
+    setBookData({
       title: book.bookTitle,
       author: book.bookAuthor || '',
       publisher: book.publisher || '',
-      publishYear: book.publishYear?.toString() || '',
-      edition: book.edition || '',
+      isbn: book.isbn || '',
       category: book.category || '',
-      synopsis: book.synopsis || '',
-      usedPrice: book.estimatedSaleValue.toString(),
-      newPrice: (book.estimatedSaleValue * 1.2).toFixed(2),
-      condition: book.condition,
-      weight: book.weight?.toString() || '',
-      shelf: book.shelf || '',
-      isbn: book.isbn || ''
+      synopsis: '',
+      usedPrice: book.estimatedSaleValue,
+      newPrice: book.estimatedSaleValue * 1.2,
+      weight: 0,
+      shelf: ''
     });
     setShowProcessDialog(true);
   };
 
+  const handleRejectBook = (book: PreCatalogBook) => {
+    const reason = prompt('Motivo da rejeição:');
+    if (reason) {
+      rejectBookMutation.mutate({ id: book.id, reason });
+    }
+  };
+
   const handleSubmitProcess = () => {
-    if (!selectedBook) return;
+    if (!selectedBook || !bookData.title.trim()) {
+      toast({
+        title: "Erro",
+        description: "Título é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const bookData = {
-      title: bookFormData.title,
-      author: bookFormData.author,
-      publisher: bookFormData.publisher || null,
-      publishYear: bookFormData.publishYear ? parseInt(bookFormData.publishYear) : null,
-      edition: bookFormData.edition || null,
-      category: bookFormData.category || null,
-      synopsis: bookFormData.synopsis || null,
-      usedPrice: parseFloat(bookFormData.usedPrice),
-      newPrice: parseFloat(bookFormData.newPrice),
-      condition: bookFormData.condition,
-      weight: bookFormData.weight ? parseInt(bookFormData.weight) : null,
-      shelf: bookFormData.shelf || null,
-      isbn: bookFormData.isbn || null,
-      productType: 'book'
-    };
-
-    processBookMutation.mutate({ id: selectedBook.id, bookData });
+    processBookMutation.mutate({
+      id: selectedBook.id,
+      bookData: {
+        ...bookData,
+        publishYear: selectedBook.publishYear,
+        condition: selectedBook.condition
+      }
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -189,11 +181,7 @@ export default function PreCatalog() {
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return 'text-green-600';
-    if (confidence >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  const pendingBooks = preCatalogBooks.filter(book => book.status === 'pending');
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -204,25 +192,62 @@ export default function PreCatalog() {
             Livros identificados em trocas aguardando processamento
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-yellow-600" />
+          <span className="text-sm font-medium">
+            {pendingBooks.length} livros pendentes
+          </span>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="text-center p-4">
+            <div className="text-2xl font-bold text-yellow-600">
+              {pendingBooks.length}
+            </div>
+            <div className="text-sm text-yellow-600">Pendentes</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="text-center p-4">
+            <div className="text-2xl font-bold text-green-600">
+              {preCatalogBooks.filter(book => book.status === 'processed').length}
+            </div>
+            <div className="text-sm text-green-600">Processados</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="text-center p-4">
+            <div className="text-2xl font-bold text-red-600">
+              {preCatalogBooks.filter(book => book.status === 'rejected').length}
+            </div>
+            <div className="text-sm text-red-600">Rejeitados</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Books List */}
       <div className="space-y-4">
         {isLoading ? (
-          <div>Carregando livros...</div>
+          <div>Carregando pré-cadastros...</div>
         ) : preCatalogBooks.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
-              <BookOpen className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <p className="text-muted-foreground">Nenhum livro em pré-cadastro</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Livros identificados em trocas aparecerão aqui
+              </p>
             </CardContent>
           </Card>
         ) : (
-          preCatalogBooks.filter(book => book.status === 'pending').map((book) => (
+          preCatalogBooks.map((book) => (
             <Card key={book.id}>
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
+                  <div>
                     <CardTitle className="flex items-center gap-2">
                       {book.bookTitle}
                       <Badge className={getStatusColor(book.status)}>
@@ -230,74 +255,41 @@ export default function PreCatalog() {
                       </Badge>
                     </CardTitle>
                     <CardDescription>
-                      {book.bookAuthor && <span>{book.bookAuthor} • </span>}
-                      Valor estimado: R$ {book.estimatedSaleValue.toFixed(2)} • 
-                      Condição: {book.condition} • 
-                      <span className={getConfidenceColor(book.confidence)}>
-                        Confiança: {book.confidence}%
-                      </span>
+                      {book.bookAuthor && `${book.bookAuthor} • `}
+                      Troca #{book.exchangeId} • R$ {book.estimatedSaleValue.toFixed(2)}
+                      {book.confidence && ` • Confiança: ${book.confidence}%`}
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleProcessBook(book)}
-                      disabled={processBookMutation.isPending}
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Processar
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={rejectBookMutation.isPending}
-                        >
-                          <X className="h-4 w-4 mr-1" />
-                          Rejeitar
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Rejeitar livro</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja rejeitar "{book.bookTitle}"? Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => rejectBookMutation.mutate({ 
-                              id: book.id, 
-                              reason: "Rejeitado pelo usuário" 
-                            })}
-                          >
-                            Rejeitar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                  {book.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleProcessBook(book)}
+                        disabled={processBookMutation.isPending}
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Processar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRejectBook(book)}
+                        disabled={rejectBookMutation.isPending}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Rejeitar
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                  <div>
-                    <strong>Ano:</strong> {book.publishYear || 'Não informado'}
-                  </div>
-                  <div>
-                    <strong>Série completa:</strong> {book.isCompleteSeries ? 'Sim' : 'Não'}
-                  </div>
-                  <div>
-                    <strong>Valor de troca:</strong> R$ {book.finalTradeValue.toFixed(2)}
-                  </div>
+                <div className="text-sm text-gray-600">
+                  <p><strong>Condição:</strong> {book.condition}</p>
+                  {book.publishYear && <p><strong>Ano:</strong> {book.publishYear}</p>}
+                  <p><strong>Valor da Troca:</strong> R$ {book.finalTradeValue.toFixed(2)}</p>
+                  <p><strong>Data:</strong> {new Date(book.createdAt).toLocaleDateString('pt-BR')}</p>
                 </div>
-                {book.notes && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    <strong>Observações:</strong> {book.notes}
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))
@@ -306,159 +298,112 @@ export default function PreCatalog() {
 
       {/* Process Book Dialog */}
       <Dialog open={showProcessDialog} onOpenChange={setShowProcessDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Processar Livro</DialogTitle>
             <DialogDescription>
-              Complete as informações do livro para adicioná-lo ao catálogo
+              Complete os dados do livro para adicioná-lo ao catálogo principal
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">Título *</Label>
-                <Input
-                  id="title"
-                  value={bookFormData.title}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, title: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="author">Autor</Label>
-                <Input
-                  id="author"
-                  value={bookFormData.author}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, author: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="isbn">ISBN</Label>
-                <Input
-                  id="isbn"
-                  value={bookFormData.isbn}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, isbn: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="publisher">Editora</Label>
-                <Input
-                  id="publisher"
-                  value={bookFormData.publisher}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, publisher: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="publishYear">Ano</Label>
-                <Input
-                  id="publishYear"
-                  type="number"
-                  value={bookFormData.publishYear}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, publishYear: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="category">Categoria</Label>
-                <Input
-                  id="category"
-                  value={bookFormData.category}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, category: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edition">Edição</Label>
-                <Input
-                  id="edition"
-                  value={bookFormData.edition}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, edition: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="usedPrice">Preço Usado *</Label>
-                <Input
-                  id="usedPrice"
-                  type="number"
-                  step="0.01"
-                  value={bookFormData.usedPrice}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, usedPrice: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="newPrice">Preço Novo</Label>
-                <Input
-                  id="newPrice"
-                  type="number"
-                  step="0.01"
-                  value={bookFormData.newPrice}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, newPrice: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="condition">Condição</Label>
-                <Select 
-                  value={bookFormData.condition} 
-                  onValueChange={(value) => setBookFormData(prev => ({ ...prev, condition: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="novo">Novo</SelectItem>
-                    <SelectItem value="usado">Usado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="weight">Peso (gramas)</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  value={bookFormData.weight}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, weight: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="shelf">Estante</Label>
-                <Input
-                  id="shelf"
-                  value={bookFormData.shelf}
-                  onChange={(e) => setBookFormData(prev => ({ ...prev, shelf: e.target.value }))}
-                />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-2 gap-4">
             <div>
+              <Label htmlFor="title">Título *</Label>
+              <Input
+                id="title"
+                value={bookData.title}
+                onChange={(e) => setBookData(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="author">Autor</Label>
+              <Input
+                id="author"
+                value={bookData.author}
+                onChange={(e) => setBookData(prev => ({ ...prev, author: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="publisher">Editora</Label>
+              <Input
+                id="publisher"
+                value={bookData.publisher}
+                onChange={(e) => setBookData(prev => ({ ...prev, publisher: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="isbn">ISBN</Label>
+              <Input
+                id="isbn"
+                value={bookData.isbn}
+                onChange={(e) => setBookData(prev => ({ ...prev, isbn: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="category">Categoria</Label>
+              <Select value={bookData.category} onValueChange={(value) => setBookData(prev => ({ ...prev, category: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Literatura">Literatura</SelectItem>
+                  <SelectItem value="Ficção">Ficção</SelectItem>
+                  <SelectItem value="Romance">Romance</SelectItem>
+                  <SelectItem value="Suspense">Suspense</SelectItem>
+                  <SelectItem value="Biografia">Biografia</SelectItem>
+                  <SelectItem value="História">História</SelectItem>
+                  <SelectItem value="Filosofia">Filosofia</SelectItem>
+                  <SelectItem value="Autoajuda">Autoajuda</SelectItem>
+                  <SelectItem value="Técnico">Técnico</SelectItem>
+                  <SelectItem value="Infantil">Infantil</SelectItem>
+                  <SelectItem value="Quadrinhos">Quadrinhos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="shelf">Prateleira</Label>
+              <Input
+                id="shelf"
+                value={bookData.shelf}
+                onChange={(e) => setBookData(prev => ({ ...prev, shelf: e.target.value }))}
+                placeholder="Ex: A1, B2, etc."
+              />
+            </div>
+            <div>
+              <Label htmlFor="usedPrice">Preço Usado</Label>
+              <Input
+                id="usedPrice"
+                type="number"
+                step="0.01"
+                value={bookData.usedPrice}
+                onChange={(e) => setBookData(prev => ({ ...prev, usedPrice: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="newPrice">Preço Novo</Label>
+              <Input
+                id="newPrice"
+                type="number"
+                step="0.01"
+                value={bookData.newPrice}
+                onChange={(e) => setBookData(prev => ({ ...prev, newPrice: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+            <div className="col-span-2">
               <Label htmlFor="synopsis">Sinopse</Label>
               <Textarea
                 id="synopsis"
-                value={bookFormData.synopsis}
-                onChange={(e) => setBookFormData(prev => ({ ...prev, synopsis: e.target.value }))}
+                value={bookData.synopsis}
+                onChange={(e) => setBookData(prev => ({ ...prev, synopsis: e.target.value }))}
                 rows={3}
               />
             </div>
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowProcessDialog(false)}>
               Cancelar
             </Button>
-            <Button 
-              onClick={handleSubmitProcess}
-              disabled={processBookMutation.isPending || !bookFormData.title.trim() || !bookFormData.usedPrice}
-            >
-              {processBookMutation.isPending ? 'Processando...' : 'Processar e Adicionar'}
+            <Button onClick={handleSubmitProcess} disabled={processBookMutation.isPending}>
+              {processBookMutation.isPending ? 'Processando...' : 'Adicionar ao Catálogo'}
             </Button>
           </DialogFooter>
         </DialogContent>

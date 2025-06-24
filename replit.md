@@ -28,15 +28,16 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ Sistema configurado para manter sempre ao menos 1 exemplar de cada clássico
 - ✅ 80+ títulos essenciais incluindo literatura brasileira, estrangeira, filosofia e infantil
 
-### 2025-01-24 - Sistema de Alertas de Livros Clássicos Corrigido
-- ✅ Limpeza completa do banco de dados (removidos livros e inventário incorretos)
-- ✅ Implementada lógica correta de alertas: apenas livros da lista com estoque < 1
-- ✅ Lista de clássicos extraída do arquivo fornecido pelo usuário (59 títulos únicos)
-- ✅ Sistema mostra dinamicamente apenas livros em falta no estoque
-- ✅ Interface atualizada para mostrar estoque atual de cada livro
-- ✅ Dashboard e página de "Livros em Falta" funcionando corretamente
-- ✅ Banco de dados limpo - inventário agora mostra apenas livros reais
-- ⚠️ OpenAI API necessita créditos para análise de fotos em trocas
+### 2025-06-24 - Sistema de Trocas Aprimorado Implementado
+- ✅ Sistema de trocas com análise de foto implementado (modo manual disponível)
+- ✅ Campos para inserir livros dados pelo cliente na troca
+- ✅ Livros da foto automaticamente enviados para pré-cadastro
+- ✅ Processamento automático de estoque remove livros dados do inventário
+- ✅ Interface de pré-cadastros para processar livros identificados
+- ✅ Separação visual entre livros recebidos e dados nas trocas
+- ✅ Banco de dados estruturado com tabelas de exchange, pre_catalog_books
+- ✅ API completa para gerenciamento de trocas e pré-cadastros
+- ✅ Workflow funcional com todas as dependências instaladas
 
 ### Database Schema Updates
 - Tabela `exchanges`: registro de trocas
@@ -46,9 +47,10 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - Tabela `missing_books`: livros clássicos que devem sempre estar em estoque
 
 ## User Preferences
-- Sistema deve usar análise de foto para identificar livros em trocas
-- Livros dados na troca devem ser removidos automaticamente do estoque
-- Livros da foto devem ficar em pré-cadastro para processamento posterior
+- Sistema de troca por foto implementado com modo manual
+- Livros que a pessoa receber devem ser retirados do acervo automaticamente
+- Livros da foto da pilha devem ficar em pré-cadastro para processamento posterior
+- Aba de trocas deve ter campos para inserir livros que a pessoa recebeu na troca
 - Sempre manter ao menos um exemplar dos livros clássicos em estoque
 - Lista de clássicos deve incluir literatura brasileira, estrangeira, filosofia e infantil
 - Interface em português brasileiro
