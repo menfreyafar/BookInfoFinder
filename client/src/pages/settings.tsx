@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,21 +48,22 @@ export default function Settings() {
   // Fetch current settings
   const { data: settings } = useQuery({
     queryKey: ['/api/settings'],
-    queryFn: getQueryFn({ on401: "throw" }),
-    select: (data) => {
-      const settingsMap = data.reduce((acc: any, setting: any) => {
+    queryFn: getQueryFn({ on401: "throw" })
+  });
+
+  // Convert settings array to object and set form values
+  React.useEffect(() => {
+    if (settings) {
+      const settingsMap = settings.reduce((acc: any, setting: any) => {
         acc[setting.key] = setting.value;
         return acc;
       }, {});
       
-      // Set form values from settings
       if (settingsMap.brand_name && brandName === "") setBrandName(settingsMap.brand_name);
       if (settingsMap.brand_subtitle && brandSubtitle === "") setBrandSubtitle(settingsMap.brand_subtitle);
       if (settingsMap.estante_email && estanteEmail === "") setEstanteEmail(settingsMap.estante_email);
-      
-      return settingsMap;
     }
-  });
+  }, [settings, brandName, brandSubtitle, estanteEmail]);
 
   // Upload logo mutation
   const logoUploadMutation = useMutation({
@@ -191,10 +192,10 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {settings?.logo_url && (
+                {settings && settings.find((s: any) => s.key === 'logo_url')?.value && (
                   <div className="flex items-center gap-4">
                     <img 
-                      src={settings.logo_url} 
+                      src={settings.find((s: any) => s.key === 'logo_url')?.value} 
                       alt="Logo atual" 
                       className="w-24 h-24 object-contain rounded border"
                     />

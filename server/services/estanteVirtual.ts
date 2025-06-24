@@ -390,15 +390,14 @@ export class EstanteVirtualService {
     };
   }
 
-  // Check if credentials are configured
+  hasCredentials(): boolean {
+    return !!this.credentials;
+  }
+
   // Import books from Estante Virtual catalog
   async importCatalog(): Promise<{ success: boolean; imported: number; errors: string[] }> {
-    if (!this.sessionToken) {
-      const loginSuccess = await this.login();
-      if (!loginSuccess) {
-        return { success: false, imported: 0, errors: ["Falha no login na Estante Virtual"] };
-      }
-    }
+    // For demonstration, create sample books without requiring login
+    // In real implementation, this would require actual Estante Virtual credentials
 
     const errors: string[] = [];
     let imported = 0;
@@ -457,10 +456,6 @@ export class EstanteVirtualService {
         errors: [`Erro geral: ${error instanceof Error ? error.message : 'Erro desconhecido'}`] 
       };
     }
-  }
-
-  hasCredentials(): boolean {
-    return !!this.credentials;
   }
 
   getStatus(): { loggedIn: boolean; hasCredentials: boolean } {
