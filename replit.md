@@ -174,3 +174,16 @@ Preferred communication style: Simple, everyday language.
   - **Estante Virtual Integration**: Added settings section for Estante Virtual account connection
   - **Connection Testing**: Implemented test connection functionality to verify credentials
   - **Automatic Credential Loading**: Service automatically loads credentials from database settings
+
+- June 24, 2025. Photo-based book registration and daily export automation
+  - **Photo Book Registration**: Complete photo-based registration system for old books without ISBN
+  - **Default ISBN System**: Automatically assigns ISBN 9789899500020 to books registered via photo
+  - **OpenAI Integration**: AI-powered book identification from images (title, author, publisher, year)
+  - **Standard Description**: Automatic "Livro usado, em excelente estado de conservação..." description
+  - **Camera Support**: Mobile camera access for photo capture, gallery selection option
+  - **Enhanced ISBN Search**: Added photo analysis option to ISBN search page
+  - **Tabbed Interface**: Reorganized book registration into ISBN, Photo, and Manual tabs
+  - **Daily Export Automation**: Automatic export to Estante Virtual daily at 14:00
+  - **Export Notifications**: System notifications when daily export completes
+  - **Export Status API**: Endpoints to check export status and trigger manual exports
+  - **Export Logging**: Database logging of export results and notifications
