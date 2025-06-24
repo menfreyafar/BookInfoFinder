@@ -236,7 +236,8 @@ export default function Exchanges() {
       yearBonus: calculation.yearBonus,
       finalPercentage: calculation.finalPercentage,
       calculatedTradeValue: calculation.calculatedTradeValue,
-      finalTradeValue: calculation.finalTradeValue
+      finalTradeValue: calculation.finalTradeValue,
+      itemType: 'received' // Books from photo analysis go to pre-catalog
     }));
 
     const exchange = {
@@ -248,7 +249,32 @@ export default function Exchanges() {
       notes: newExchangeData.notes || null
     };
 
-    createExchangeMutation.mutate({ exchange, items });
+    createExchangeMutation.mutate({ exchange, items, givenBooks });
+  };
+
+  const addGivenBook = () => {
+    if (!newGivenBook.bookTitle.trim() || newGivenBook.salePrice <= 0 || newGivenBook.quantity <= 0) {
+      toast({
+        title: "Erro",
+        description: "Título, preço e quantidade são obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGivenBooks([...givenBooks, { ...newGivenBook }]);
+    setNewGivenBook({
+      bookTitle: '',
+      bookAuthor: '',
+      salePrice: 0,
+      quantity: 1,
+      notes: ''
+    });
+    setShowAddBookDialog(false);
+  };
+
+  const removeGivenBook = (index: number) => {
+    setGivenBooks(givenBooks.filter((_, i) => i !== index));
   };
 
   const getStatusColor = (status: string) => {
@@ -374,6 +400,122 @@ export default function Exchanges() {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Books Given by Customer */}
+              {photoAnalysis && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label>Livros Dados pelo Cliente</Label>
+                    <Dialog open={showAddBookDialog} onOpenChange={setShowAddBookDialog}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Adicionar Livro
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Adicionar Livro Dado</DialogTitle>
+                          <DialogDescription>
+                            Adicione um livro que o cliente está dando na troca
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="bookTitle">Título *</Label>
+                            <Input
+                              id="bookTitle"
+                              value={newGivenBook.bookTitle}
+                              onChange={(e) => setNewGivenBook(prev => ({ ...prev, bookTitle: e.target.value }))}
+                              placeholder="Título do livro"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="bookAuthor">Autor</Label>
+                            <Input
+                              id="bookAuthor"
+                              value={newGivenBook.bookAuthor}
+                              onChange={(e) => setNewGivenBook(prev => ({ ...prev, bookAuthor: e.target.value }))}
+                              placeholder="Nome do autor"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="salePrice">Preço de Venda *</Label>
+                              <Input
+                                id="salePrice"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={newGivenBook.salePrice}
+                                onChange={(e) => setNewGivenBook(prev => ({ ...prev, salePrice: parseFloat(e.target.value) || 0 }))}
+                                placeholder="0.00"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="quantity">Quantidade *</Label>
+                              <Input
+                                id="quantity"
+                                type="number"
+                                min="1"
+                                value={newGivenBook.quantity}
+                                onChange={(e) => setNewGivenBook(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                                placeholder="1"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="bookNotes">Observações</Label>
+                            <Textarea
+                              id="bookNotes"
+                              value={newGivenBook.notes}
+                              onChange={(e) => setNewGivenBook(prev => ({ ...prev, notes: e.target.value }))}
+                              placeholder="Observações sobre o livro..."
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setShowAddBookDialog(false)}>
+                            Cancelar
+                          </Button>
+                          <Button onClick={addGivenBook}>
+                            Adicionar Livro
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  {givenBooks.length > 0 && (
+                    <div className="space-y-2">
+                      {givenBooks.map((book, index) => (
+                        <div key={index} className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                          <div className="flex-1">
+                            <div className="font-medium">{book.bookTitle}</div>
+                            {book.bookAuthor && (
+                              <div className="text-sm text-gray-600">{book.bookAuthor}</div>
+                            )}
+                            <div className="text-sm text-gray-500">
+                              Qtd: {book.quantity} • Preço: R$ {book.salePrice.toFixed(2)}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm" 
+                            onClick={() => removeGivenBook(index)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg">
+                    📋 <strong>Importante:</strong> Os livros dados pelo cliente serão automaticamente removidos do estoque quando a troca for processada.
+                  </div>
+                </div>
               )}
 
               {/* Customer Information */}
