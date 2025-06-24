@@ -164,10 +164,11 @@ export default function Exchanges() {
       setShowNewExchangeDialog(false);
       setPhotoAnalysis(null);
       setSelectedFile(null);
+      setGivenBooks([]);
       setNewExchangeData({ customerName: '', customerEmail: '', customerPhone: '', notes: '' });
       toast({
         title: "Sucesso",
-        description: "Troca criada com sucesso",
+        description: "Troca criada com sucesso. Livros da foto foram adicionados ao pré-cadastro.",
       });
     },
     onError: (error: Error) => {
@@ -277,6 +278,36 @@ export default function Exchanges() {
     setGivenBooks(givenBooks.filter((_, i) => i !== index));
   };
 
+  const processInventoryMutation = useMutation({
+    mutationFn: async (exchangeId: number) => {
+      const response = await fetch(`/api/exchanges/${exchangeId}/process-inventory`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao processar estoque');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['exchanges'] });
+      toast({
+        title: "Estoque Processado",
+        description: `${data.processedBooks} livros removidos do estoque`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -346,6 +377,25 @@ export default function Exchanges() {
                       Arquivo selecionado: {selectedFile.name}
                     </p>
                   )}
+                  <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Temporariamente:</strong> A análise automática de fotos está limitada por cota da API. 
+                      Você pode criar trocas manualmente adicionando os livros dados pelo cliente.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-2"
+                      onClick={() => setPhotoAnalysis({
+                        books: [],
+                        totalTradeValue: 0,
+                        bookCount: 0,
+                        explanation: "Troca manual - adicione os livros dados pelo cliente abaixo"
+                      })}
+                    >
+                      Criar Troca Manual
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -657,30 +707,76 @@ export default function Exchanges() {
                   
                   <Separator />
                   
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Livros da Troca:</h4>
-                    {exchange.items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <div>
-                          <div className="font-medium text-sm">{item.bookTitle}</div>
-                          {item.bookAuthor && (
-                            <div className="text-xs text-gray-600">{item.bookAuthor}</div>
-                          )}
-                          <div className="text-xs text-gray-500">
-                            {item.condition} • {item.finalPercentage}%
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Books Received (from photo) */}
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-blue-700">Livros Recebidos (Foto):</h4>
+                      {exchange.items.filter(item => item.itemType === 'received').map((item, index) => (
+                        <div key={index} className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200">
+                          <div>
+                            <div className="font-medium text-sm">{item.bookTitle}</div>
+                            {item.bookAuthor && (
+                              <div className="text-xs text-gray-600">{item.bookAuthor}</div>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              {item.condition} • {item.finalPercentage}%
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-sm text-green-600">
+                              R$ {item.finalTradeValue.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              de R$ {item.estimatedSaleValue.toFixed(2)}
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold text-sm text-green-600">
-                            R$ {item.finalTradeValue.toFixed(2)}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            de R$ {item.estimatedSaleValue.toFixed(2)}
+                      ))}
+                      {exchange.items.filter(item => item.itemType === 'received').length === 0 && (
+                        <p className="text-sm text-gray-500 italic">Nenhum livro analisado por foto</p>
+                      )}
+                    </div>
+
+                    {/* Books Given by Customer */}
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-orange-700">Livros Dados pelo Cliente:</h4>
+                      {exchange.givenBooks && exchange.givenBooks.map((book, index) => (
+                        <div key={index} className="flex justify-between items-center p-2 bg-orange-50 rounded border border-orange-200">
+                          <div>
+                            <div className="font-medium text-sm">{book.bookTitle}</div>
+                            {book.bookAuthor && (
+                              <div className="text-xs text-gray-600">{book.bookAuthor}</div>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              Qtd: {book.quantity} • Preço: R$ {book.salePrice.toFixed(2)}
+                              {book.inventoryProcessed && <span className="text-green-600"> ✓ Processado</span>}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                      {(!exchange.givenBooks || exchange.givenBooks.length === 0) && (
+                        <p className="text-sm text-gray-500 italic">Nenhum livro dado pelo cliente</p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Process Inventory Button */}
+                  {exchange.status === 'completed' && !exchange.inventoryProcessed && exchange.givenBooks && exchange.givenBooks.length > 0 && (
+                    <div className="mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => processInventoryMutation.mutate(exchange.id)}
+                        disabled={processInventoryMutation.isPending}
+                      >
+                        <Calculator className="h-4 w-4 mr-2" />
+                        {processInventoryMutation.isPending ? 'Processando...' : 'Processar Estoque'}
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Remove os livros dados pelo cliente do estoque
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
