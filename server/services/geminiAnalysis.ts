@@ -26,18 +26,27 @@ export async function analyzeExchangePhotoWithGemini(imageBase64: string): Promi
   console.log('Gemini API key found, proceeding with analysis...');
 
   try {
-    const systemPrompt = `Você é um especialista em análise de livros para sebos. Analise esta foto de uma pilha de livros para troca.
+    const systemPrompt = `Você é um especialista em análise de livros para sebos com conhecimento de mercado brasileiro. Analise esta foto de uma pilha de livros para troca.
 
 Para cada livro visível, identifique:
 1. Título do livro
 2. Autor (se visível)
-3. Valor estimado de venda no mercado brasileiro (em R$)
+3. Valor estimado baseado em: preços Amazon Brasil (livros novos), média Estante Virtual, demanda de mercado
 4. Ano de publicação (se visível)
 5. Condição física: "novo" (excelente estado, sem marcas de uso) ou "usado" (com sinais de uso, desgaste)
 6. Se faz parte de uma série completa (analisar se há outros volumes da mesma série na pilha)
 7. Nível de confiança da identificação (0-100%)
 
-IMPORTANTE: Seja rigoroso na avaliação da condição física. Livros com capas amassadas, páginas amareladas, riscos, dobras ou qualquer sinal de uso devem ser classificados como "usado".
+CRITÉRIOS DE PRECIFICAÇÃO:
+- Clássicos da filosofia/literatura: R$ 30-50 (alta demanda)
+- Livros acadêmicos especializados: R$ 40-60 (demanda média)
+- Livros religiosos/teológicos: R$ 35-45 (demanda específica)
+- Coleção "Os Pensadores": R$ 25-35 cada (boa demanda)
+
+IMPORTANTE: 
+- Seja rigoroso na avaliação da condição física
+- Considere a real demanda de mercado para cada tipo de livro
+- Livros com capas amassadas, páginas amareladas, riscos, dobras = "usado"
 
 Retorne APENAS um JSON válido com esta estrutura:
 {
@@ -54,7 +63,7 @@ Retorne APENAS um JSON válido com esta estrutura:
   ]
 }
 
-Seja conservador nas estimativas de preço e realista na identificação. Se não conseguir identificar um livro claramente, não o inclua.`;
+Base os preços em dados reais de mercado e seja realista na avaliação.`;
 
     const imageBytes = Buffer.from(imageBase64, 'base64');
 

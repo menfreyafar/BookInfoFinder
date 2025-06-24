@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { calculateTradeValue } from './tradeCalculator';
 import { analyzeExchangePhotoWithGemini } from './geminiAnalysis';
+import { enhanceBookAnalysis } from './priceAnalysis';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'placeholder',
@@ -27,8 +28,21 @@ export async function analyzeExchangePhoto(imageBase64: string): Promise<Identif
     try {
       const result = await analyzeExchangePhotoWithGemini(imageBase64);
       if (result.length > 0) {
-        console.log(`Gemini successfully identified ${result.length} books`);
-        return result;
+        console.log(`Gemini identified ${result.length} books, enhancing with market analysis...`);
+        
+        // Enhance with detailed market analysis
+        const enhancedBooks = await enhanceBookAnalysis(result);
+        console.log('Market analysis completed for all books');
+        
+        return enhancedBooks.map(book => ({
+          title: book.title,
+          author: book.author,
+          estimatedSaleValue: book.estimatedSaleValue,
+          publishYear: book.publishYear,
+          condition: book.condition,
+          isCompleteSeries: book.isCompleteSeries,
+          confidence: book.confidence
+        }));
       }
       console.log('Gemini returned 0 books, trying OpenAI...');
     } catch (error) {
