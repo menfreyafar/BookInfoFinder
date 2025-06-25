@@ -15,6 +15,7 @@ import { z } from "zod";
 import multer from "multer";
 import { generateBookBookmark } from "./routes/bookmarks";
 import { generateDemoStoragePDF } from "./routes/demo";
+import { createShelf, getAllShelves, updateShelf, deleteShelf } from "./routes/shelves";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -974,6 +975,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Demo storage PDF generation
   app.get("/api/storage/demo-pdf", generateDemoStoragePDF);
+
+  // Shelves routes
+  app.get("/api/shelves", getAllShelves);
+  app.post("/api/shelves", createShelf);
+  app.put("/api/shelves/:id", updateShelf);
+  app.delete("/api/shelves/:id", deleteShelf);
 
   app.post("/api/missing-books/import-classics", async (req, res) => {
     try {

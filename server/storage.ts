@@ -39,7 +39,7 @@ import {
   type ExchangeWithItems
 } from "@shared/schema";
 import type { Setting, InsertSetting } from "@shared/schema";
-import { db } from "./db";
+import { db } from "../server/db";
 import { eq, desc, asc, and, or, like, lt, sql } from "drizzle-orm";
 
 export interface IStorage {

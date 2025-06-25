@@ -277,9 +277,9 @@ export default function BookForm({ book, onClose }: BookFormProps) {
                   <SelectValue placeholder="Selecione a estante" />
                 </SelectTrigger>
                 <SelectContent>
-                  {shelves.map((shelf) => (
+                  {shelves.filter(shelf => shelf.name && shelf.name.trim() !== '').map((shelf) => (
                     <SelectItem key={shelf.id} value={shelf.name}>
-                      {shelf.name} - {shelf.location}
+                      {shelf.name} - {shelf.location || 'Localização não definida'}
                     </SelectItem>
                   ))}
                 </SelectContent>
