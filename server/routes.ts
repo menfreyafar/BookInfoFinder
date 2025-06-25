@@ -848,11 +848,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         doc.moveDown(1);
         
-        // Bookmark dimensions - exactly like user's model
-        const bookmarkWidth = 120;  // Width exactly like model
-        const bookmarkHeight = 180; // Height exactly like model
-        const margin = 5;
+        // Bookmark dimensions - match the template system (2.5cm x 10cm)
+        const bookmarkWidth = 2.5 * 28.35;  // ~71 points (2.5cm)
+        const bookmarkHeight = 10 * 28.35; // ~284 points (10cm)
+        const margin = 10;
         const cols = 6; // 6 bookmarks per row exactly like model
+        const spacing = (595 - 2 * margin - cols * bookmarkWidth) / (cols - 1); // Calculate spacing between labels
         const rows = 4; // 4 rows per page
         
         let currentX = margin;
@@ -871,14 +872,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             row = 0;
           }
           
-          const x = margin + col * (bookmarkWidth + margin);
-          const y = currentY + row * (bookmarkHeight + margin);
+          const x = margin + col * (bookmarkWidth + spacing);
+          const y = currentY + row * (bookmarkHeight + 10); // 10pt spacing between rows
           
           // Draw bookmark border
           doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
           
           // Use custom layout if available, otherwise use default layout
           if (customLayoutElements && customLayoutElements.length > 0) {
+            // Apply custom layout
+            
             // Apply custom template background if available
             if (customTemplateData) {
               try {
@@ -896,11 +899,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const elementWidth = (element.width / 100) * bookmarkWidth;
               const elementHeight = (element.height / 100) * bookmarkHeight;
               
-              // Add background for element
-              doc.save();
-              doc.fillOpacity(element.opacity || 1);
-              doc.rect(elementX, elementY, elementWidth, elementHeight).fill(element.backgroundColor || '#ffffff');
-              doc.restore();
+              // Render element at calculated position
+              
+              // Add background for element with opacity
+              if (element.backgroundColor && element.backgroundColor !== 'transparent') {
+                doc.save();
+                doc.fillOpacity(element.opacity || 0.9);
+                doc.rect(elementX, elementY, elementWidth, elementHeight)
+                   .fill(element.backgroundColor);
+                doc.restore();
+              }
               
               // Get content based on element type
               let content = '';
@@ -917,7 +925,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   break;
                 case 'synopsis':
                   content = book.synopsis || '';
-                  if (content.length > 200) content = content.substring(0, 200) + '...';
+                  // Adjust synopsis length based on element height
+                  const maxChars = Math.floor(elementHeight / 3) * 10; // Rough estimate
+                  if (content.length > maxChars) content = content.substring(0, maxChars) + '...';
                   break;
                 case 'code':
                   content = book.unique_code || '';
@@ -927,18 +937,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   break;
               }
               
-              // Render text
+              // Render text with proper formatting
               if (content) {
                 doc.save();
                 doc.fontSize(element.fontSize || 10);
                 doc.font(element.fontWeight === 'bold' ? 'Helvetica-Bold' : 'Helvetica');
                 doc.fillColor(element.color || '#000000');
-                doc.text(content, elementX + 2, elementY + 2, {
+                doc.fillOpacity(1); // Full opacity for text
+                
+                const textOptions = {
                   width: elementWidth - 4,
-                  height: elementHeight - 4,
                   align: element.textAlign || 'center',
-                  ellipsis: true
-                });
+                  lineGap: 1
+                };
+                
+                // For synopsis, allow text wrapping and adjust text
+                if (element.type === 'synopsis') {
+                  textOptions.height = elementHeight - 4;
+                  // Limit synopsis text for better readability in small spaces
+                  const maxCharsForHeight = Math.floor(elementHeight / element.fontSize) * 40;
+                  if (content.length > maxCharsForHeight) {
+                    content = content.substring(0, maxCharsForHeight) + '...';
+                  }
+                }
+                
+                doc.text(content, elementX + 2, elementY + 2, textOptions);
                 doc.restore();
               }
             });

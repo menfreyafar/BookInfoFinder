@@ -46,6 +46,8 @@ O sistema agora suporta:
 - 2025-01-23: Implementado sistema de configurações de marca persistentes
 - 2025-01-23: Corrigido layout da interface de customização de etiquetas
 - 2025-01-23: Adicionado scroll na tela de configuração de etiquetas
+- 2025-01-23: Corrigido PDF "Lista + Etiquetas" para aplicar layout personalizado salvo
+- 2025-01-23: Sistema de etiquetas personalizadas agora funciona completamente
 
 ## Próximos Passos
 - Sistema está pronto para uso e desenvolvimento adicional
