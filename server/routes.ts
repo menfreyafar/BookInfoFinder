@@ -881,9 +881,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Parse base64 image data and apply as background
               const base64Data = customTemplateData.includes(',') ? customTemplateData.split(',')[1] : customTemplateData;
               const imageBuffer = Buffer.from(base64Data, 'base64');
+              
+              // Apply image with cover fit to fill entire area and avoid white borders
               doc.image(imageBuffer, x, y, {
                 width: bookmarkWidth,
-                height: bookmarkHeight
+                height: bookmarkHeight,
+                cover: [bookmarkWidth, bookmarkHeight]
               });
             } catch (error) {
               console.warn('Could not apply background template:', error.message);
