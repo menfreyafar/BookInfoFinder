@@ -22,10 +22,18 @@ interface LabelElement {
   opacity: number;
 }
 
+interface BrandInfo {
+  storeName?: string;
+  logoData?: string;
+  address?: string;
+  phone?: string;
+}
+
 interface LabelCustomizerProps {
   templateImage?: string;
-  onSaveLayout: (elements: LabelElement[]) => void;
+  onSaveLayout: (elements: LabelElement[], brandInfo?: BrandInfo) => void;
   initialElements?: LabelElement[];
+  initialBrandInfo?: BrandInfo;
 }
 
 const DEFAULT_ELEMENTS: LabelElement[] = [
@@ -91,11 +99,12 @@ const ELEMENT_LABELS = {
   condition: 'Condição'
 };
 
-export default function LabelCustomizer({ templateImage, onSaveLayout, initialElements }: LabelCustomizerProps) {
+export default function LabelCustomizer({ templateImage, onSaveLayout, initialElements, initialBrandInfo }: LabelCustomizerProps) {
   const [elements, setElements] = useState<LabelElement[]>(initialElements || DEFAULT_ELEMENTS);
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [brandInfo, setBrandInfo] = useState<BrandInfo>(initialBrandInfo || {});
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const labelWidth = 71; // 2.5cm in points
@@ -412,12 +421,72 @@ export default function LabelCustomizer({ templateImage, onSaveLayout, initialEl
           </Card>
         )}
 
+        {/* Brand Information */}
+        <div className="space-y-3 pt-4 border-t">
+          <Label className="text-sm font-semibold">Informações da Marca</Label>
+          
+          <div>
+            <Label className="text-xs">Nome da Loja</Label>
+            <Input
+              type="text"
+              placeholder="Ex: Luar Sebo"
+              value={brandInfo.storeName || ''}
+              onChange={(e) => setBrandInfo({...brandInfo, storeName: e.target.value})}
+              className="text-xs"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">Endereço</Label>
+            <Input
+              type="text"
+              placeholder="Endereço da loja"
+              value={brandInfo.address || ''}
+              onChange={(e) => setBrandInfo({...brandInfo, address: e.target.value})}
+              className="text-xs"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">Telefone</Label>
+            <Input
+              type="text"
+              placeholder="(11) 99999-9999"
+              value={brandInfo.phone || ''}
+              onChange={(e) => setBrandInfo({...brandInfo, phone: e.target.value})}
+              className="text-xs"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">Logo (opcional)</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    setBrandInfo({...brandInfo, logoData: event.target?.result as string});
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="text-xs"
+            />
+            {brandInfo.logoData && (
+              <img src={brandInfo.logoData} alt="Logo preview" className="mt-2 max-w-full h-12 object-contain" />
+            )}
+          </div>
+        </div>
+
         {/* Save Layout */}
         <Button 
-          onClick={() => onSaveLayout(elements)}
+          onClick={() => onSaveLayout(elements, brandInfo)}
           className="w-full"
         >
-          Salvar Layout Personalizado
+          Salvar Layout e Configurações
         </Button>
       </div>
     </div>

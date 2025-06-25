@@ -30,7 +30,12 @@ export async function uploadTemplate(req: Request, res: Response) {
     await storage.setSetting('custom_template_name', file.originalname);
     await storage.setSetting('custom_template_type', file.mimetype);
     
-    console.log('Template saved successfully');
+    // Mark this template as the default template
+    await storage.setSetting('default_template_data', dataUrl);
+    await storage.setSetting('default_template_name', file.originalname);
+    await storage.setSetting('default_template_type', file.mimetype);
+    
+    console.log('Template saved successfully as default');
     
     res.json({ 
       success: true, 
@@ -244,11 +249,26 @@ export async function getTemplateInfo(req: Request, res: Response) {
     const templateData = await storage.getSetting('custom_template_data');
     const templateName = await storage.getSetting('custom_template_name');
     const templateType = await storage.getSetting('custom_template_type');
+    const layoutElements = await storage.getSetting('custom_layout_elements');
+    
+    // Get default brand information
+    const defaultStoreName = await storage.getSetting('default_store_name');
+    const defaultLogoData = await storage.getSetting('default_logo_data');
+    const defaultStoreAddress = await storage.getSetting('default_store_address');
+    const defaultStorePhone = await storage.getSetting('default_store_phone');
     
     res.json({
       hasTemplate: !!templateData?.value,
       templateName: templateName?.value || null,
-      templateType: templateType?.value || null
+      templateType: templateType?.value || null,
+      hasCustomLayout: !!layoutElements?.value,
+      layoutElements: layoutElements?.value ? JSON.parse(layoutElements.value) : null,
+      brandInfo: {
+        storeName: defaultStoreName?.value || null,
+        logoData: defaultLogoData?.value || null,
+        address: defaultStoreAddress?.value || null,
+        phone: defaultStorePhone?.value || null
+      }
     });
   } catch (error) {
     console.error('Erro ao buscar informações do modelo:', error);
@@ -258,7 +278,7 @@ export async function getTemplateInfo(req: Request, res: Response) {
 
 export async function saveCustomLayout(req: Request, res: Response) {
   try {
-    const { elements } = req.body;
+    const { elements, brandInfo } = req.body;
     
     if (!elements || !Array.isArray(elements)) {
       return res.status(400).json({ error: 'Elementos de layout são obrigatórios' });
@@ -267,9 +287,26 @@ export async function saveCustomLayout(req: Request, res: Response) {
     console.log('Saving custom layout:', elements);
     await storage.setSetting('custom_layout_elements', JSON.stringify(elements));
     
+    // Save brand information as default if provided
+    if (brandInfo) {
+      console.log('Saving brand info as default:', brandInfo);
+      if (brandInfo.storeName) {
+        await storage.setSetting('default_store_name', brandInfo.storeName);
+      }
+      if (brandInfo.logoData) {
+        await storage.setSetting('default_logo_data', brandInfo.logoData);
+      }
+      if (brandInfo.address) {
+        await storage.setSetting('default_store_address', brandInfo.address);
+      }
+      if (brandInfo.phone) {
+        await storage.setSetting('default_store_phone', brandInfo.phone);
+      }
+    }
+    
     res.json({ 
       success: true, 
-      message: 'Layout personalizado salvo com sucesso'
+      message: 'Layout e configurações de marca salvos como padrão'
     });
   } catch (error) {
     console.error('Erro ao salvar layout personalizado:', error);

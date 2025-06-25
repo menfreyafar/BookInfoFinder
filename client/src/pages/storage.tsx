@@ -144,26 +144,27 @@ export default function StoragePage() {
     }
   };
 
-  const saveCustomLayout = async (elements: any[]) => {
+  const saveCustomLayout = async (elements: any[], brandInfo?: any) => {
     try {
       const response = await fetch('/api/storage/save-layout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ elements }),
+        body: JSON.stringify({ elements, brandInfo }),
       });
       
       if (!response.ok) throw new Error('Erro ao salvar layout');
       
       toast({
-        title: "Layout Salvo",
-        description: "Layout personalizado salvo com sucesso!",
+        title: "Configurações Salvas",
+        description: "Layout e informações da marca salvos como padrão!",
       });
       
       setIsCustomizerOpen(false);
+      refetchTemplateInfo(); // Refresh to show updated brand info
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao salvar layout personalizado",
+        description: "Erro ao salvar configurações",
         variant: "destructive",
       });
     }
@@ -287,6 +288,8 @@ export default function StoragePage() {
                         <LabelCustomizer
                           templateImage={templatePreview}
                           onSaveLayout={saveCustomLayout}
+                          initialElements={templateInfo?.layoutElements}
+                          initialBrandInfo={templateInfo?.brandInfo}
                         />
                       </DialogContent>
                     </Dialog>
