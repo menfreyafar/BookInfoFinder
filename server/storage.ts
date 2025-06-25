@@ -106,6 +106,12 @@ export interface IStorage {
     lowStockCount: number;
     estanteVirtualCount: number;
   }>;
+  
+  // Book transfers
+  createBookTransfer(transfer: InsertBookTransfer): Promise<BookTransfer>;
+  getBookTransfers(bookId?: number): Promise<BookTransferWithDetails[]>;
+  getShelfHistory(shelfId: number): Promise<BookTransferWithDetails[]>;
+  updateBookShelf(bookId: number, newShelfId: number, reason?: string, transferredBy?: string): Promise<BookTransfer>;
 }
 
 export class DatabaseStorage implements IStorage {

@@ -390,6 +390,15 @@ export type InsertMissingBook = z.infer<typeof insertMissingBookSchema>;
 export type Shelf = typeof shelves.$inferSelect;
 export type InsertShelf = z.infer<typeof insertShelfSchema>;
 
+export type BookTransfer = typeof bookTransfers.$inferSelect;
+export type InsertBookTransfer = z.infer<typeof insertBookTransferSchema>;
+
+export type BookTransferWithDetails = BookTransfer & {
+  book: Book;
+  fromShelf: Shelf | null;
+  toShelf: Shelf;
+};
+
 export type ExchangeWithItems = Exchange & {
   items: ExchangeItem[];
   givenBooks: ExchangeGivenBook[];

@@ -1074,6 +1074,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/shelves/:id", updateShelf);
   app.delete("/api/shelves/:id", deleteShelf);
 
+  // Book transfer routes
+  app.post("/api/books/:id/transfer", async (req: Request, res: Response) => {
+    try {
+      const bookId = parseInt(req.params.id);
+      const { to_shelf_id, reason, transferred_by } = req.body;
+
+      if (!to_shelf_id) {
+        return res.status(400).json({ error: "ID da estante de destino é obrigatório" });
+      }
+
+      const transfer = await storage.updateBookShelf(bookId, to_shelf_id, reason, transferred_by);
+      res.json(transfer);
+    } catch (error) {
+      console.error("Error transferring book:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.get("/api/books/:id/transfers", async (req: Request, res: Response) => {
+    try {
+      const bookId = parseInt(req.params.id);
+      const transfers = await storage.getBookTransfers(bookId);
+      res.json(transfers);
+    } catch (error) {
+      console.error("Error fetching book transfers:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.get("/api/transfers", async (req: Request, res: Response) => {
+    try {
+      const transfers = await storage.getBookTransfers();
+      res.json(transfers);
+    } catch (error) {
+      console.error("Error fetching transfers:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.get("/api/shelves/:id/history", async (req: Request, res: Response) => {
+    try {
+      const shelfId = parseInt(req.params.id);
+      const history = await storage.getShelfHistory(shelfId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching shelf history:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
   app.post("/api/missing-books/import-classics", async (req, res) => {
     try {
       const imported = await storage.importClassicBooks();

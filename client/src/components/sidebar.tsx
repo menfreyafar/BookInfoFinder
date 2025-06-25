@@ -6,11 +6,12 @@ import {
   Download, 
   Settings, 
   BarChart3,
-  Library,
+  FileText,
   Truck,
   ArrowUpDown,
   BookOpen,
-  AlertTriangle
+  AlertTriangle,
+  MapPin
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -25,9 +26,9 @@ interface Setting {
 const navigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
   { name: "Cadastro", href: "/isbn-search", icon: Barcode },
-  { name: "Catálogo", href: "/catalog", icon: Library },
+  { name: "Catálogo", href: "/catalog", icon: FileText },
   { name: "Estoque", href: "/inventory", icon: Package },
-  { name: "Guarda", href: "/storage", icon: Package },
+  { name: "Guarda", href: "/storage", icon: MapPin },
   { name: "Livros em Falta", href: "/missing-books", icon: AlertTriangle },
   { name: "Ponto de Venda", href: "/pos", icon: ShoppingCart },
   { name: "Pedidos", href: "/orders", icon: Truck },
