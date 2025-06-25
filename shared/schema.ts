@@ -190,6 +190,30 @@ export const shelves = sqliteTable("shelves", {
   updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
+// Tabela para pedidos de clientes (Radar)
+export const customerRequests = sqliteTable("customer_requests", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  author: text("author").notNull(),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone").notNull(),
+  notes: text("notes"),
+  status: text("status").notNull().default("active"), // active, fulfilled, cancelled
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  fulfilledAt: integer("fulfilled_at", { mode: 'timestamp' }),
+  fulfilledByBookId: integer("fulfilled_by_book_id").references(() => books.id),
+});
+
+export const bookTransfers = sqliteTable("book_transfers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  bookId: integer("book_id").notNull().references(() => books.id),
+  fromShelfId: integer("from_shelf_id").references(() => shelves.id),
+  toShelfId: integer("to_shelf_id").notNull().references(() => shelves.id),
+  transferredAt: integer("transferred_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  transferredBy: text("transferred_by"),
+  reason: text("reason"),
+});
+
 // Relations
 export const booksRelations = relations(books, ({ one, many }) => ({
   inventory: one(inventory, {
@@ -264,6 +288,28 @@ export const preCatalogBooksRelations = relations(preCatalogBooks, ({ one }) => 
   exchange: one(exchanges, {
     fields: [preCatalogBooks.exchangeId],
     references: [exchanges.id],
+  }),
+}));
+
+export const customerRequestsRelations = relations(customerRequests, ({ one }) => ({
+  fulfilledByBook: one(books, {
+    fields: [customerRequests.fulfilledByBookId],
+    references: [books.id],
+  }),
+}));
+
+export const bookTransfersRelations = relations(bookTransfers, ({ one }) => ({
+  book: one(books, {
+    fields: [bookTransfers.bookId],
+    references: [books.id],
+  }),
+  fromShelf: one(shelves, {
+    fields: [bookTransfers.fromShelfId],
+    references: [shelves.id],
+  }),
+  toShelf: one(shelves, {
+    fields: [bookTransfers.toShelfId],
+    references: [shelves.id],
   }),
 }));
 
@@ -342,6 +388,17 @@ export const insertShelfSchema = createInsertSchema(shelves).omit({
   currentCount: true,
 });
 
+export const insertCustomerRequestSchema = createInsertSchema(customerRequests).omit({
+  id: true,
+  createdAt: true,
+  fulfilledAt: true,
+});
+
+export const insertBookTransferSchema = createInsertSchema(bookTransfers).omit({
+  id: true,
+  transferredAt: true,
+});
+
 // Types
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;
@@ -389,6 +446,9 @@ export type InsertMissingBook = z.infer<typeof insertMissingBookSchema>;
 
 export type Shelf = typeof shelves.$inferSelect;
 export type InsertShelf = z.infer<typeof insertShelfSchema>;
+
+export type CustomerRequest = typeof customerRequests.$inferSelect;
+export type InsertCustomerRequest = z.infer<typeof insertCustomerRequestSchema>;
 
 export type BookTransfer = typeof bookTransfers.$inferSelect;
 export type InsertBookTransfer = z.infer<typeof insertBookTransferSchema>;

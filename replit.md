@@ -17,7 +17,8 @@ Sistema completo de gestão para livrarias e sebos, desenvolvido com React (fron
 4. Sistema de etiquetas personalizáveis
 5. Análise de preços e tendências
 6. Importação/exportação para Estante Virtual
-7. Relatórios e análises
+7. Sistema Radar - Pedidos de clientes
+8. Relatórios e análises
 
 ## Estado Atual
 - ✅ Migração para ambiente Replit concluída
@@ -48,6 +49,11 @@ O sistema agora suporta:
 - 2025-01-23: Adicionado scroll na tela de configuração de etiquetas
 - 2025-01-23: Corrigido PDF "Lista + Etiquetas" para aplicar layout personalizado salvo
 - 2025-01-23: Sistema de etiquetas personalizadas agora funciona completamente
+- 2025-06-25: Implementado sistema "Radar" completo para pedidos de clientes
+- 2025-06-25: Adicionada tabela customer_requests no banco de dados
+- 2025-06-25: Criadas rotas API para gerenciar solicitações de clientes
+- 2025-06-25: Nova interface web para cadastro e gestão de pedidos
+- 2025-06-25: Sistema de notificação quando livros procurados entram no estoque
 
 ## Próximos Passos
 - Sistema está pronto para uso e desenvolvimento adicional

@@ -1935,6 +1935,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/storage/save-layout', saveCustomLayout);
   app.get('/api/storage/custom-layout-pdf', generateCustomLayoutPDF);
 
+  // Customer Requests (Radar) routes
+  app.get("/api/customer-requests", async (req: Request, res: Response) => {
+    try {
+      const status = req.query.status as string;
+      if (status === 'active') {
+        const requests = await storage.getActiveCustomerRequests();
+        res.json(requests);
+      } else {
+        const requests = await storage.getAllCustomerRequests();
+        res.json(requests);
+      }
+    } catch (error) {
+      console.error("Error getting customer requests:", error);
+      res.status(500).json({ error: "Erro ao buscar solicitações de clientes" });
+    }
+  });
+
+  app.post("/api/customer-requests", async (req: Request, res: Response) => {
+    try {
+      const request = await storage.createCustomerRequest(req.body);
+      
+      // Verificar se já existe um livro correspondente no estoque
+      const matches = await storage.checkForMatchingRequests(req.body.title, req.body.author);
+      if (matches.length > 0) {
+        console.log(`Nova solicitação pode ter correspondência: ${req.body.title} - ${req.body.author}`);
+      }
+      
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Error creating customer request:", error);
+      res.status(500).json({ error: "Erro ao criar solicitação do cliente" });
+    }
+  });
+
+  app.put("/api/customer-requests/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const request = await storage.updateCustomerRequest(id, req.body);
+      if (!request) {
+        return res.status(404).json({ error: "Solicitação não encontrada" });
+      }
+      res.json(request);
+    } catch (error) {
+      console.error("Error updating customer request:", error);
+      res.status(500).json({ error: "Erro ao atualizar solicitação do cliente" });
+    }
+  });
+
+  app.delete("/api/customer-requests/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCustomerRequest(id);
+      if (!success) {
+        return res.status(404).json({ error: "Solicitação não encontrada" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting customer request:", error);
+      res.status(500).json({ error: "Erro ao deletar solicitação do cliente" });
+    }
+  });
+
+  app.post("/api/customer-requests/:id/fulfill", async (req: Request, res: Response) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const { bookId } = req.body;
+      
+      const request = await storage.fulfillCustomerRequest(requestId, bookId);
+      if (!request) {
+        return res.status(404).json({ error: "Solicitação não encontrada" });
+      }
+      
+      res.json(request);
+    } catch (error) {
+      console.error("Error fulfilling customer request:", error);
+      res.status(500).json({ error: "Erro ao atender solicitação do cliente" });
+    }
+  });
+
+  // Endpoint para verificar se um livro recém-cadastrado corresponde a alguma solicitação
+  app.post("/api/books/:id/check-requests", async (req: Request, res: Response) => {
+    try {
+      const bookId = parseInt(req.params.id);
+      const book = await storage.getBook(bookId);
+      
+      if (!book) {
+        return res.status(404).json({ error: "Livro não encontrado" });
+      }
+      
+      const matches = await storage.checkForMatchingRequests(book.title, book.author || '');
+      
+      res.json({
+        hasMatches: matches.length > 0,
+        matches: matches,
+        message: matches.length > 0 
+          ? `${matches.length} cliente(s) procurando este livro!` 
+          : 'Nenhum cliente procurando este livro'
+      });
+    } catch (error) {
+      console.error("Error checking requests for book:", error);
+      res.status(500).json({ error: "Erro ao verificar solicitações para o livro" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

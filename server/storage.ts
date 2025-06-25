@@ -11,6 +11,10 @@ import {
   exchangeItems,
   exchangeGivenBooks,
   preCatalogBooks,
+  customerRequests,
+  bookTransfers,
+  missingBooks,
+  shelves,
   type Book, 
   type InsertBook,
   type Inventory,
@@ -36,7 +40,15 @@ import {
   type InsertExchangeGivenBook,
   type PreCatalogBook,
   type InsertPreCatalogBook,
-  type ExchangeWithItems
+  type ExchangeWithItems,
+  type CustomerRequest,
+  type InsertCustomerRequest,
+  type BookTransfer,
+  type InsertBookTransfer,
+  type BookTransferWithDetails,
+  type MissingBook,
+  type InsertMissingBook,
+  type Shelf
 } from "@shared/schema";
 import type { Setting, InsertSetting } from "@shared/schema";
 import { db } from "../server/db";
@@ -112,6 +124,15 @@ export interface IStorage {
   getBookTransfers(bookId?: number): Promise<BookTransferWithDetails[]>;
   getShelfHistory(shelfId: number): Promise<BookTransferWithDetails[]>;
   updateBookShelf(bookId: number, newShelfId: number, reason?: string, transferredBy?: string): Promise<BookTransfer>;
+
+  // Customer requests (Radar)
+  createCustomerRequest(request: InsertCustomerRequest): Promise<CustomerRequest>;
+  getAllCustomerRequests(): Promise<CustomerRequest[]>;
+  getActiveCustomerRequests(): Promise<CustomerRequest[]>;
+  updateCustomerRequest(id: number, request: Partial<InsertCustomerRequest>): Promise<CustomerRequest | undefined>;
+  deleteCustomerRequest(id: number): Promise<boolean>;
+  fulfillCustomerRequest(requestId: number, bookId: number): Promise<CustomerRequest | undefined>;
+  checkForMatchingRequests(title: string, author: string): Promise<CustomerRequest[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -732,6 +753,59 @@ export class DatabaseStorage implements IStorage {
       .where(eq(preCatalogBooks.id, id));
     
     return (result.rowCount || 0) > 0;
+  }
+
+  // Customer requests (Radar) methods
+  async createCustomerRequest(request: InsertCustomerRequest): Promise<CustomerRequest> {
+    const [result] = await db.insert(customerRequests).values(request).returning();
+    return result;
+  }
+
+  async getAllCustomerRequests(): Promise<CustomerRequest[]> {
+    return db.select().from(customerRequests).orderBy(desc(customerRequests.createdAt));
+  }
+
+  async getActiveCustomerRequests(): Promise<CustomerRequest[]> {
+    return db.select().from(customerRequests)
+      .where(eq(customerRequests.status, 'active'))
+      .orderBy(desc(customerRequests.createdAt));
+  }
+
+  async updateCustomerRequest(id: number, request: Partial<InsertCustomerRequest>): Promise<CustomerRequest | undefined> {
+    const [result] = await db.update(customerRequests)
+      .set(request)
+      .where(eq(customerRequests.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCustomerRequest(id: number): Promise<boolean> {
+    const result = await db.delete(customerRequests)
+      .where(eq(customerRequests.id, id));
+    return result.changes > 0;
+  }
+
+  async fulfillCustomerRequest(requestId: number, bookId: number): Promise<CustomerRequest | undefined> {
+    const [result] = await db.update(customerRequests)
+      .set({
+        status: 'fulfilled',
+        fulfilledAt: new Date(),
+        fulfilledByBookId: bookId,
+      })
+      .where(eq(customerRequests.id, requestId))
+      .returning();
+    return result;
+  }
+
+  async checkForMatchingRequests(title: string, author: string): Promise<CustomerRequest[]> {
+    return db.select().from(customerRequests)
+      .where(and(
+        eq(customerRequests.status, 'active'),
+        or(
+          like(customerRequests.title, `%${title}%`),
+          like(customerRequests.author, `%${author}%`)
+        )
+      ));
   }
 }
 

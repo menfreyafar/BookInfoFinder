@@ -11,7 +11,8 @@ import {
   ArrowUpDown,
   BookOpen,
   AlertTriangle,
-  MapPin
+  MapPin,
+  Radar
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -30,6 +31,7 @@ const navigation = [
   { name: "Estoque", href: "/inventory", icon: Package },
   { name: "Guarda", href: "/storage", icon: MapPin },
   { name: "Livros em Falta", href: "/missing-books", icon: AlertTriangle },
+  { name: "Radar", href: "/radar", icon: Radar },
   { name: "Ponto de Venda", href: "/pos", icon: ShoppingCart },
   { name: "Pedidos", href: "/orders", icon: Truck },
   { name: "Trocas", href: "/exchanges", icon: ArrowUpDown },
