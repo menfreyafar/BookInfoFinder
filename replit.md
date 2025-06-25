@@ -19,13 +19,15 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - **File Uploads**: Multer
 
 ## Recent Changes
-### 2025-06-25 - Migração para Replit Finalizada
+### 2025-06-25 - Migração para Replit Finalizada e Modelo de Etiquetas Atualizado
 - ✅ Migração completa do Replit Agent para ambiente Replit finalizada
 - ✅ Todas as dependências instaladas e funcionando
 - ✅ Aplicação rodando com sucesso na porta 5000
 - ✅ Sistema de gestão de livraria totalmente operacional
 - ✅ Integração GitHub configurada (repositório BookInfoFinder)
 - ✅ Hot reload e desenvolvimento ativo funcionando
+- ✅ **Modelo de etiquetas/marca-páginas atualizado conforme design fornecido**
+- ✅ **Layout com preço em destaque no topo, título em maiúsculas, e símbolo especial para Estante Virtual**
 
 ## Recent Changes
 ### 2025-06-24 - Sistema de Guarda e Etiquetas Implementado

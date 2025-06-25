@@ -161,89 +161,82 @@ export async function generateDemoStoragePDF(req: Request, res: Response) {
       // Draw bookmark border
       doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
       
-      // Store name at top
-      doc.fontSize(10).font('Helvetica-Bold')
-        .text(storeName, x + 5, y + 8, { 
-          width: bookmarkWidth - 10, 
-          align: 'center'
-        });
-      
-      doc.fontSize(8).font('Helvetica')
-        .text(storeSubtitle, x + 5, y + 22, { 
-          width: bookmarkWidth - 10, 
-          align: 'center'
-        });
-      
-      // Separator line
-      doc.moveTo(x + 10, y + 35).lineTo(x + bookmarkWidth - 10, y + 35).stroke();
-      
-      // Book title (large, readable)
-      doc.fontSize(11).font('Helvetica-Bold')
-        .text(book.title.substring(0, 40) + (book.title.length > 40 ? '...' : ''), 
-              x + 5, y + 42, { 
-                width: bookmarkWidth - 10, 
-                align: 'center'
-              });
-      
-      // Author
-      doc.fontSize(9).font('Helvetica')
-        .text(book.author.substring(0, 30) + (book.author.length > 30 ? '...' : ''), 
-              x + 5, y + 70, { 
-                width: bookmarkWidth - 10, 
-                align: 'center'
-              });
-      
-      // Price (very large and prominent)
+      // Price at the top - very prominent
       const finalPrice = book.used_price || book.new_price || 0;
       if (finalPrice > 0) {
-        doc.fontSize(18).font('Helvetica-Bold').fillColor('red')
-          .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 88, { 
+        doc.fontSize(16).font('Helvetica-Bold')
+          .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 10, { 
             width: bookmarkWidth - 10, 
             align: 'center'
           });
       }
       
-      // Reset color
-      doc.fillColor('black');
+      // Book title (bold, prominent)
+      doc.fontSize(12).font('Helvetica-Bold')
+        .text(book.title.toUpperCase(), x + 5, y + 35, { 
+          width: bookmarkWidth - 10, 
+          align: 'center'
+        });
       
-      // Synopsis (small)
+      // Author (centered below title)
+      doc.fontSize(9).font('Helvetica')
+        .text(book.author, x + 5, y + 55, { 
+          width: bookmarkWidth - 10, 
+          align: 'center'
+        });
+      
+      // Sales process info
+      doc.fontSize(8).font('Helvetica')
+        .text('Processo de vendas', x + 5, y + 75, { 
+          width: bookmarkWidth - 10, 
+          align: 'center'
+        })
+        .text('em cinco etapas', x + 5, y + 87, { 
+          width: bookmarkWidth - 10, 
+          align: 'center'
+        });
+      
+      // Synopsis (justified text, smaller font)
       if (book.synopsis) {
-        const shortSynopsis = book.synopsis.substring(0, 80) + (book.synopsis.length > 80 ? '...' : '');
+        let synopsis = book.synopsis;
+        // Limit synopsis to fit nicely in the space
+        if (synopsis.length > 350) {
+          synopsis = synopsis.substring(0, 350) + '...';
+        }
+        
         doc.fontSize(7).font('Helvetica')
-          .text(shortSynopsis, x + 5, y + 115, { 
+          .text(synopsis, x + 5, y + 105, { 
             width: bookmarkWidth - 10, 
-            align: 'left'
+            align: 'justify',
+            lineGap: 1
           });
       }
       
-      // Estante Virtual indicator
+      // Estante Virtual indicator with symbol
       if (book.sent_to_estante_virtual) {
-        doc.fontSize(7).font('Helvetica-Bold').fillColor('green')
-          .text('📱 Disponível Online', x + 5, y + 150, { 
-            width: bookmarkWidth - 10, 
-            align: 'center'
-          });
-      }
-      
-      // Reset color
-      doc.fillColor('black');
-      
-      // Unique code at bottom
-      if (book.unique_code) {
         doc.fontSize(8).font('Helvetica')
-          .text(book.unique_code, x + 5, y + bookmarkHeight - 20, { 
+          .text('Ø=Üñ Disponível Online', x + 5, y + 170, { 
             width: bookmarkWidth - 10, 
             align: 'center'
           });
       }
       
-      // Edition/condition info
+      // Edition and condition info
       let infoText = '';
       if (book.edition) infoText += book.edition;
       if (book.condition) infoText += (infoText ? ' • ' : '') + book.condition;
       if (infoText) {
-        doc.fontSize(7).font('Helvetica')
-          .text(infoText, x + 5, y + bookmarkHeight - 35, { 
+        doc.fontSize(8).font('Helvetica')
+          .text(infoText, x + 5, y + 185, { 
+            width: bookmarkWidth - 10, 
+            align: 'center'
+          });
+      }
+      
+      // Unique code at bottom
+      if (book.unique_code) {
+        doc.fontSize(9).font('Helvetica')
+          .text(book.unique_code, x + 5, y + 190, { 
             width: bookmarkWidth - 10, 
             align: 'center'
           });
