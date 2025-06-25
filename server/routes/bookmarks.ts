@@ -5,7 +5,7 @@ export async function generateBookBookmark(req: Request, res: Response) {
   try {
     const { bookId } = req.params;
     
-    const { sqlite } = await import("../db");
+    const { sqlite } = await import("../server/db");
     const book = sqlite.prepare(`
       SELECT 
         b.title, b.author, b.shelf, b.unique_code, b.condition, b.edition,

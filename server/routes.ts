@@ -94,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update unique code with real ID
       const finalUniqueCode = `LU-${book.id}-${year}`;
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       sqlite.prepare('UPDATE books SET unique_code = ? WHERE id = ?').run(finalUniqueCode, book.id);
       
       // Create inventory entry if quantity is provided
@@ -636,7 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shelves routes
   app.get("/api/shelves", async (req, res) => {
     try {
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       const shelves = sqlite.prepare('SELECT * FROM shelves WHERE is_active = 1 ORDER BY name').all();
       res.json(shelves);
     } catch (error) {
@@ -653,7 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Nome da estante é obrigatório" });
       }
 
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       const stmt = sqlite.prepare(`
         INSERT INTO shelves (name, description, location, capacity, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -674,7 +674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { name, description, location, capacity } = req.body;
 
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       const stmt = sqlite.prepare(`
         UPDATE shelves SET name = ?, description = ?, location = ?, capacity = ?, updated_at = ?
         WHERE id = ?
@@ -698,7 +698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
 
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       
       // Check if shelf has books
       const booksCount = sqlite.prepare('SELECT COUNT(*) as count FROM books WHERE shelf = (SELECT name FROM shelves WHERE id = ?)').get(id);
@@ -719,7 +719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Storage routes
   app.get("/api/storage/pending", async (req, res) => {
     try {
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       const books = sqlite.prepare(`
         SELECT 
           b.id, b.title, b.author, b.edition, b.condition, b.shelf, 
@@ -745,7 +745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const bookId = parseInt(req.params.id);
 
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       sqlite.prepare(`
         UPDATE books SET is_stored = 1, stored_at = ?, updated_at = ?
         WHERE id = ?
@@ -766,7 +766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/storage/generate-pdf", async (req, res) => {
     try {
-      const { sqlite } = await import("../db");
+      const { sqlite } = await import("../server/db");
       const books = sqlite.prepare(`
         SELECT 
           b.title, b.author, b.shelf, b.unique_code, b.condition, b.edition,

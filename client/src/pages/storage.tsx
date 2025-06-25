@@ -15,7 +15,7 @@ interface BookToStore extends Book {
 }
 
 export default function StoragePage() {
-  const [selectedShelf, setSelectedShelf] = useState<string>("");
+  const [selectedShelf, setSelectedShelf] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
 
