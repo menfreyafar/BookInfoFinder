@@ -7,6 +7,7 @@ import { analyzeExchangePhoto, calculateBulkTradeValue, generateTradeExplanation
 import { calculateTradeValue } from "./services/tradeCalculator";
 import { formatBooksForEstanteVirtual, generateExcelFile, generateCSVFile, generateSalesReport } from "./services/export";
 import { estanteVirtualService } from "./services/estanteVirtual";
+import { uploadTemplate, generateCustomPDF, getTemplateInfo } from "./routes/templates";
 import { orderImporterService } from "./services/orderImporter";
 import { dailyExportScheduler } from "./services/scheduler";
 import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema, insertExchangeSchema, insertExchangeItemSchema, insertExchangeGivenBookSchema, insertPreCatalogBookSchema } from "@shared/schema";
@@ -1785,6 +1786,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } catch (error) {
     console.warn('Export scheduler not available:', error);
   }
+
+  // Custom template routes
+  app.post('/api/storage/upload-template', upload.single('template'), uploadTemplate);
+  app.get('/api/storage/custom-pdf', generateCustomPDF);
+  app.get('/api/storage/template-info', getTemplateInfo);
 
   const httpServer = createServer(app);
   return httpServer;

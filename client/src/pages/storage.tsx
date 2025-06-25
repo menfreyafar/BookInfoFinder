@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Package, PackageCheck, FileText, QrCode, Archive } from "lucide-react";
+import { Package, PackageCheck, FileText, QrCode, Archive, Upload, Download } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import type { Book, Shelf } from "@shared/schema";
 
 interface BookToStore extends Book {
@@ -17,6 +18,7 @@ interface BookToStore extends Book {
 export default function StoragePage() {
   const [selectedShelf, setSelectedShelf] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [templateFile, setTemplateFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
 
   // Books waiting to be stored (cadastrados mas não guardados)
@@ -35,6 +37,16 @@ export default function StoragePage() {
     queryFn: async () => {
       const response = await fetch('/api/shelves');
       if (!response.ok) throw new Error('Erro ao carregar estantes');
+      return response.json();
+    }
+  });
+
+  // Template info
+  const { data: templateInfo } = useQuery({
+    queryKey: ['template-info'],
+    queryFn: async () => {
+      const response = await fetch('/api/storage/template-info');
+      if (!response.ok) throw new Error('Erro ao carregar informações do modelo');
       return response.json();
     }
   });
@@ -84,6 +96,50 @@ export default function StoragePage() {
     }
   });
 
+  // Upload template mutation
+  const uploadTemplateMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('template', file);
+      
+      const response = await fetch('/api/storage/upload-template', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao fazer upload do modelo');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Modelo personalizado carregado com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ['template-info'] });
+      setTemplateFile(null);
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Erro ao fazer upload do modelo",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleTemplateUpload = () => {
+    if (templateFile) {
+      uploadTemplateMutation.mutate(templateFile);
+    }
+  };
+
+  const generateCustomPdf = () => {
+    window.open('/api/storage/custom-pdf', '_blank');
+  };
+
   const filteredBooks = booksToStore.filter(book => {
     const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,24 +164,79 @@ export default function StoragePage() {
             Livros cadastrados aguardando para serem guardados nas estantes. O PDF inclui lista de verificação e etiquetas/marca-páginas para cada livro.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => generatePdfMutation.mutate()}
-            disabled={generatePdfMutation.isPending || filteredBooks.length === 0}
-            variant="outline"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Lista + Etiquetas PDF
-          </Button>
-          <Button
-            onClick={() => {
-              window.open('/api/storage/demo-pdf', '_blank');
-            }}
-            variant="secondary"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Ver Modelo
-          </Button>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => generatePdfMutation.mutate()}
+              disabled={generatePdfMutation.isPending || filteredBooks.length === 0}
+              variant="outline"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Lista + Etiquetas PDF
+            </Button>
+            <Button
+              onClick={() => {
+                window.open('/api/storage/demo-pdf', '_blank');
+              }}
+              variant="secondary"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Ver Modelo
+            </Button>
+          </div>
+          
+          {/* Custom Template Section */}
+          <Card className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Modelo Personalizado</h4>
+                {templateInfo?.hasTemplate && (
+                  <Badge variant="secondary">
+                    {templateInfo.templateName}
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="text-sm text-muted-foreground">
+                Dimensões: 10cm altura × 2,5cm largura
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="template-upload" className="sr-only">
+                    Carregar modelo
+                  </Label>
+                  <Input
+                    id="template-upload"
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={(e) => setTemplateFile(e.target.files?.[0] || null)}
+                    className="text-sm"
+                  />
+                </div>
+                <Button
+                  onClick={handleTemplateUpload}
+                  disabled={!templateFile || uploadTemplateMutation.isPending}
+                  size="sm"
+                >
+                  <Upload className="mr-1 h-3 w-3" />
+                  Carregar
+                </Button>
+              </div>
+              
+              {templateInfo?.hasTemplate && (
+                <Button
+                  onClick={generateCustomPdf}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Gerar com Modelo Personalizado
+                </Button>
+              )}
+            </div>
+          </Card>
         </div>
       </div>
 
