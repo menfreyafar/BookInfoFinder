@@ -27,7 +27,9 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ Integração GitHub configurada (repositório BookInfoFinder)
 - ✅ Hot reload e desenvolvimento ativo funcionando
 - ✅ **Modelo de etiquetas/marca-páginas atualizado conforme design fornecido**
-- ✅ **Layout com preço em destaque no topo, título em maiúsculas, e símbolo especial para Estante Virtual**
+- ✅ **Layout horizontal com preço em destaque, título em maiúsculas, e símbolo especial**
+- ✅ **Dimensões ajustadas: 200x140pt (formato paisagem) com fontes maiores**
+- ✅ **Disposição: 3 etiquetas por linha em formato horizontal**
 
 ## Recent Changes
 ### 2025-06-24 - Sistema de Guarda e Etiquetas Implementado

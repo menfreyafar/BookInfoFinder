@@ -839,12 +839,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.fontSize(16).text('Etiquetas/Marca-páginas dos Livros', { align: 'center' });
         doc.moveDown(1);
         
-        // Bookmark dimensions (optimized for elderly customers)
-        const bookmarkWidth = 140;  // Width of bookmark
-        const bookmarkHeight = 200; // Height of bookmark
+        // Bookmark dimensions (horizontal layout like model)
+        const bookmarkWidth = 200;  // Width of bookmark (horizontal)
+        const bookmarkHeight = 140; // Height of bookmark (horizontal)
         const margin = 10;
-        const cols = 4; // 4 bookmarks per row
-        const rows = 5; // 5 rows per page
+        const cols = 3; // 3 bookmarks per row (horizontal)
+        const rows = 6; // 6 rows per page
         
         let currentX = margin;
         let currentY = doc.y;
@@ -868,61 +868,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Draw bookmark border
           doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
           
-          // Price at the top - very prominent
+          // Price at the top - exactly like the model
           const finalPrice = book.used_price || book.new_price || 0;
           if (finalPrice > 0) {
-            doc.fontSize(16).font('Helvetica-Bold')
-              .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 10, { 
+            doc.fontSize(14).font('Helvetica-Bold')
+              .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 8, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
           }
           
-          // Book title (bold, prominent)
+          // Book title (bold, prominent) - position like model
           doc.fontSize(12).font('Helvetica-Bold')
-            .text(book.title.toUpperCase(), x + 5, y + 35, { 
+            .text(book.title.toUpperCase(), x + 5, y + 28, { 
               width: bookmarkWidth - 10, 
               align: 'center'
             });
           
-          // Author (centered below title)
+          // Author (centered below title) - closer spacing
           doc.fontSize(9).font('Helvetica')
-            .text(book.author, x + 5, y + 55, { 
+            .text(book.author, x + 5, y + 45, { 
               width: bookmarkWidth - 10, 
               align: 'center'
             });
           
-          // Sales process info
+          // Sales process info - smaller and positioned like model
           doc.fontSize(8).font('Helvetica')
-            .text('Processo de vendas', x + 5, y + 75, { 
+            .text('Processo de vendas', x + 5, y + 60, { 
               width: bookmarkWidth - 10, 
               align: 'center'
             })
-            .text('em cinco etapas', x + 5, y + 87, { 
+            .text('em cinco etapas', x + 5, y + 70, { 
               width: bookmarkWidth - 10, 
               align: 'center'
             });
           
-          // Synopsis (justified text, smaller font)
+          // Synopsis (justified text) - main content area like model
           if (book.synopsis) {
             let synopsis = book.synopsis;
-            // Limit synopsis to fit nicely in the space
+            // Limit to fit the space properly horizontally
             if (synopsis.length > 350) {
               synopsis = synopsis.substring(0, 350) + '...';
             }
             
             doc.fontSize(7).font('Helvetica')
-              .text(synopsis, x + 5, y + 105, { 
+              .text(synopsis, x + 5, y + 85, { 
                 width: bookmarkWidth - 10, 
                 align: 'justify',
-                lineGap: 1
+                lineGap: 0.5
               });
           }
           
-          // Estante Virtual indicator with symbol
+          // Estante Virtual indicator - positioned like model
           if (book.sent_to_estante_virtual) {
             doc.fontSize(8).font('Helvetica')
-              .text('Ø=Üñ Disponível Online', x + 5, y + 170, { 
+              .text('Ø=Üñ Disponível Online', x + 5, y + 115, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
@@ -937,22 +937,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
           }
           
-          // Edition and condition info
+          // Edition and condition info - penultimate line like model
           let infoText = '';
           if (book.edition) infoText += book.edition;
           if (book.condition) infoText += (infoText ? ' • ' : '') + book.condition;
           if (infoText) {
             doc.fontSize(8).font('Helvetica')
-              .text(infoText, x + 5, y + 185, { 
+              .text(infoText, x + 5, y + 125, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
           }
           
-          // Unique code at bottom
+          // Unique code at bottom - last line like model
           if (book.unique_code) {
-            doc.fontSize(9).font('Helvetica')
-              .text(book.unique_code, x + 5, y + 190, { 
+            doc.fontSize(8).font('Helvetica')
+              .text(book.unique_code, x + 5, y + 135, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });

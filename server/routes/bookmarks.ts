@@ -30,10 +30,10 @@ export async function generateBookBookmark(req: Request, res: Response) {
     const storeName = settingsMap.store_name || 'Luar Sebo e Livraria';
     const storeSubtitle = settingsMap.brand_subtitle || '';
 
-    // Create PDF with single bookmark
+    // Create PDF with single bookmark - horizontal layout like model
     const doc = new PDFDocument({ 
-      margin: 50,
-      size: [140, 200] // Bookmark size in points
+      margin: 30,
+      size: [200, 140] // Horizontal bookmark size in points (width x height)
     });
     
     res.setHeader('Content-Type', 'application/pdf');
@@ -41,83 +41,83 @@ export async function generateBookBookmark(req: Request, res: Response) {
     
     doc.pipe(res);
 
-    // Price at the top - very prominent
+    // Price at the top - exactly like the model
     const finalPrice = book.used_price || book.new_price || 0;
     if (finalPrice > 0) {
-      doc.fontSize(16).font('Helvetica-Bold')
-        .text(`R$ ${finalPrice.toFixed(2)}`, 5, 10, { 
-          width: 130, 
+      doc.fontSize(14).font('Helvetica-Bold')
+        .text(`R$ ${finalPrice.toFixed(2)}`, 5, 8, { 
+          width: 190, 
           align: 'center'
         });
     }
     
-    // Book title (bold, prominent)
+    // Book title (bold, prominent) - position like model
     doc.fontSize(12).font('Helvetica-Bold')
-      .text(book.title.toUpperCase(), 5, 35, { 
-        width: 130, 
+      .text(book.title.toUpperCase(), 5, 28, { 
+        width: 190, 
         align: 'center'
       });
     
-    // Author (centered below title)
+    // Author (centered below title) - closer spacing
     doc.fontSize(9).font('Helvetica')
-      .text(book.author, 5, 55, { 
-        width: 130, 
+      .text(book.author, 5, 45, { 
+        width: 190, 
         align: 'center'
       });
     
-    // Sales process info
+    // Sales process info - smaller and positioned like model
     doc.fontSize(8).font('Helvetica')
-      .text('Processo de vendas', 5, 75, { 
-        width: 130, 
+      .text('Processo de vendas', 5, 60, { 
+        width: 190, 
         align: 'center'
       })
-      .text('em cinco etapas', 5, 87, { 
-        width: 130, 
+      .text('em cinco etapas', 5, 70, { 
+        width: 190, 
         align: 'center'
       });
     
-    // Synopsis (justified text, smaller font)
+    // Synopsis (justified text) - main content area like model
     if (book.synopsis) {
       let synopsis = book.synopsis;
-      // Limit synopsis to fit nicely in the space
+      // Limit to fit the space properly horizontally
       if (synopsis.length > 350) {
         synopsis = synopsis.substring(0, 350) + '...';
       }
       
       doc.fontSize(7).font('Helvetica')
-        .text(synopsis, 5, 105, { 
-          width: 130, 
+        .text(synopsis, 5, 85, { 
+          width: 190, 
           align: 'justify',
-          lineGap: 1
+          lineGap: 0.5
         });
     }
     
-    // Estante Virtual indicator with symbol
+    // Estante Virtual indicator - positioned like model
     if (book.sent_to_estante_virtual) {
       doc.fontSize(8).font('Helvetica')
-        .text('Ø=Üñ Disponível Online', 5, 170, { 
-          width: 130, 
+        .text('Ø=Üñ Disponível Online', 5, 115, { 
+          width: 190, 
           align: 'center'
         });
     }
     
-    // Edition and condition info
+    // Edition and condition info - penultimate line like model
     let infoText = '';
     if (book.edition) infoText += book.edition;
     if (book.condition) infoText += (infoText ? ' • ' : '') + book.condition;
     if (infoText) {
       doc.fontSize(8).font('Helvetica')
-        .text(infoText, 5, 185, { 
-          width: 130, 
+        .text(infoText, 5, 125, { 
+          width: 190, 
           align: 'center'
         });
     }
     
-    // Unique code at bottom
+    // Unique code at bottom - last line like model
     if (book.unique_code) {
-      doc.fontSize(9).font('Helvetica')
-        .text(book.unique_code, 5, 190, { 
-          width: 130, 
+      doc.fontSize(8).font('Helvetica')
+        .text(book.unique_code, 5, 135, { 
+          width: 190, 
           align: 'center'
         });
     }
