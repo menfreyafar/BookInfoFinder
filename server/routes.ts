@@ -875,22 +875,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const x = margin + col * (bookmarkWidth + spacing);
           const y = currentY + row * (bookmarkHeight + 10); // 10pt spacing between rows
           
-          // Draw bookmark border
-          doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
+          // Apply custom template background image first if available
+          if (customLayoutElements && customLayoutElements.length > 0 && customTemplateData) {
+            try {
+              // Parse base64 image data and apply as background
+              const base64Data = customTemplateData.includes(',') ? customTemplateData.split(',')[1] : customTemplateData;
+              const imageBuffer = Buffer.from(base64Data, 'base64');
+              doc.image(imageBuffer, x, y, {
+                width: bookmarkWidth,
+                height: bookmarkHeight
+              });
+            } catch (error) {
+              console.warn('Could not apply background template:', error.message);
+              // Fallback: draw border if image fails
+              doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
+            }
+          } else {
+            // Draw bookmark border if no custom template
+            doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
+          }
           
           // Use custom layout if available, otherwise use default layout
           if (customLayoutElements && customLayoutElements.length > 0) {
-            // Apply custom layout
-            
-            // Apply custom template background if available
-            if (customTemplateData) {
-              try {
-                // Note: Background image implementation would require additional setup
-                // For now, we'll use the custom layout positioning
-              } catch (error) {
-                console.warn('Could not apply background template');
-              }
-            }
+            // Apply custom layout elements over the background
             
             // Render custom layout elements
             customLayoutElements.forEach((element) => {
@@ -901,10 +908,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Render element at calculated position
               
-              // Add background for element with opacity
+              // Add semi-transparent background for text readability
               if (element.backgroundColor && element.backgroundColor !== 'transparent') {
                 doc.save();
-                doc.fillOpacity(element.opacity || 0.9);
+                doc.fillOpacity(element.opacity || 0.8);
                 doc.rect(elementX, elementY, elementWidth, elementHeight)
                    .fill(element.backgroundColor);
                 doc.restore();
@@ -937,31 +944,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   break;
               }
               
-              // Render text with proper formatting
+              // Render text with proper formatting and spacing
               if (content) {
                 doc.save();
                 doc.fontSize(element.fontSize || 10);
                 doc.font(element.fontWeight === 'bold' ? 'Helvetica-Bold' : 'Helvetica');
                 doc.fillColor(element.color || '#000000');
-                doc.fillOpacity(1); // Full opacity for text
+                doc.fillOpacity(1);
                 
-                const textOptions = {
-                  width: elementWidth - 4,
-                  align: element.textAlign || 'center',
-                  lineGap: 1
-                };
+                const padding = 4;
+                const textX = elementX + padding;
+                const textY = elementY + padding;
+                const availableWidth = elementWidth - (padding * 2);
+                const availableHeight = elementHeight - (padding * 2);
                 
-                // For synopsis, allow text wrapping and adjust text
+                // Prepare text content based on element type
+                let processedContent = content;
+                
                 if (element.type === 'synopsis') {
-                  textOptions.height = elementHeight - 4;
-                  // Limit synopsis text for better readability in small spaces
-                  const maxCharsForHeight = Math.floor(elementHeight / element.fontSize) * 40;
-                  if (content.length > maxCharsForHeight) {
-                    content = content.substring(0, maxCharsForHeight) + '...';
+                  // Calculate text constraints for synopsis
+                  const lineHeight = element.fontSize * 1.4;
+                  const maxLines = Math.floor(availableHeight / lineHeight);
+                  const charsPerLine = Math.floor(availableWidth / (element.fontSize * 0.5));
+                  const maxChars = Math.max(30, maxLines * charsPerLine);
+                  
+                  if (processedContent.length > maxChars) {
+                    processedContent = processedContent.substring(0, maxChars - 3).trim() + '...';
                   }
+                  
+                  // Render synopsis with controlled wrapping
+                  doc.text(processedContent, textX, textY, {
+                    width: availableWidth,
+                    height: availableHeight,
+                    align: element.textAlign || 'center',
+                    ellipsis: true,
+                    lineGap: 1
+                  });
+                } else if (element.type === 'title') {
+                  // Handle title with truncation if needed
+                  const maxChars = Math.floor(availableWidth / (element.fontSize * 0.6));
+                  if (processedContent.length > maxChars) {
+                    processedContent = processedContent.substring(0, maxChars - 3).trim() + '...';
+                  }
+                  
+                  doc.text(processedContent, textX, textY, {
+                    width: availableWidth,
+                    align: element.textAlign || 'center'
+                  });
+                } else {
+                  // Handle other elements (price, author, code, condition)
+                  const maxChars = Math.floor(availableWidth / (element.fontSize * 0.6));
+                  if (processedContent.length > maxChars) {
+                    processedContent = processedContent.substring(0, maxChars - 3).trim() + '...';
+                  }
+                  
+                  doc.text(processedContent, textX, textY, {
+                    width: availableWidth,
+                    align: element.textAlign || 'center'
+                  });
                 }
                 
-                doc.text(content, elementX + 2, elementY + 2, textOptions);
                 doc.restore();
               }
             });
