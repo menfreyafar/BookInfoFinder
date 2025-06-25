@@ -96,7 +96,7 @@ function estimateBasePriceFromTitle(title: string, author?: string): number {
     return 35.00;
   }
   
-  // Bioética - valor acadêmico específico
+  // Bioética - interesse acadêmico
   if (titleLower.includes('bioética')) {
     return 30.00;
   }
@@ -119,7 +119,7 @@ function estimateBasePriceFromTitle(title: string, author?: string): number {
     return 25.00;
   }
   
-  // Livros teológicos - giro muito específico
+  // Livros teológicos - giro muito específico, baixo valor
   if (titleLower.includes('teológicas') || titleLower.includes('paisagens')) {
     return 20.00;
   }
@@ -178,7 +178,7 @@ function calculateWeightedAverage(priceData: {
   return weightedSum / totalWeight;
 }
 
-function assessMarketability(title: string, author?: string, priceData: any): 'alta' | 'media' | 'baixa' {
+function assessMarketability(title: string, author?: string, priceData: any): 'alta' | 'media' | 'baixa' | 'muito-baixa' {
   const titleLower = title.toLowerCase();
   const authorLower = author?.toLowerCase() || '';
   
@@ -187,55 +187,60 @@ function assessMarketability(title: string, author?: string, priceData: any): 'a
     return 'alta';
   }
   
-  // Low marketability: domain público, giro lento, muito específico
-  const lowDemandKeywords = ['pensadores', 'epistemologia', 'teológicas', 'paisagens'];
+  // Very low marketability: teológicas (muito específico, baixo giro)
+  if (titleLower.includes('teológicas') || titleLower.includes('paisagens')) {
+    return 'muito-baixa';
+  }
+  
+  // Low marketability: domain público, giro lento
+  const lowDemandKeywords = ['pensadores', 'epistemologia'];
   const lowDemandContent = ['more', 'campanella']; // domínio público
   if (lowDemandKeywords.some(keyword => titleLower.includes(keyword)) ||
       lowDemandContent.some(content => titleLower.includes(content) || authorLower.includes(content))) {
     return 'baixa';
   }
   
-  // Medium marketability: clássicos com giro razoável
-  const mediumDemandKeywords = ['república', 'contrato social', 'bioética'];
-  const mediumDemandAuthors = ['platão', 'rousseau'];
-  if (mediumDemandKeywords.some(keyword => titleLower.includes(keyword)) ||
-      mediumDemandAuthors.some(author => authorLower.includes(author))) {
+  // Medium marketability: bioética (interesse acadêmico)
+  if (titleLower.includes('bioética')) {
     return 'media';
+  }
+  
+  // Low marketability para a maioria dos clássicos (giro razoável mas baixo)
+  const classicKeywords = ['república', 'contrato social', 'cidade do sol'];
+  const classicAuthors = ['platão', 'rousseau', 'campanella'];
+  if (classicKeywords.some(keyword => titleLower.includes(keyword)) ||
+      classicAuthors.some(author => authorLower.includes(author))) {
+    return 'baixa'; // Mesmo sendo clássicos, têm giro lento
   }
   
   // Default to baixa for conservative pricing
   return 'baixa';
 }
 
-function calculateEstimatedSaleValue(averagePrice: number, marketability: 'alta' | 'media' | 'baixa'): number {
-  let multiplier = 1.0;
-  
+function calculateEstimatedSaleValue(averagePrice: number, marketability: 'alta' | 'media' | 'baixa' | 'muito-baixa'): number {
+  // Usar valores conservadores baseados na avaliação manual
   switch (marketability) {
     case 'alta':
-      multiplier = 0.85; // High demand, can price closer to market
-      break;
+      return 35.00; // Anatomia da Destrutividade Humana - boa saída
     case 'media':
-      multiplier = 0.75; // Medium demand, moderate discount
-      break;
+      return 30.00; // Bioética - interesse acadêmico  
     case 'baixa':
-      multiplier = 0.65; // Low demand, need significant discount
-      break;
+      return 25.00; // Clássicos e domínio público
+    case 'muito-baixa':
+      return 20.00; // Paisagens Teológicas - muito específico
   }
   
-  const estimatedValue = averagePrice * multiplier;
-  
-  // Round to nearest R$ 5 for practical pricing
-  return Math.max(10.00, Math.round(estimatedValue / 5) * 5);
+  return 25.00; // Default conservador
 }
 
 function getDefaultPricing(title: string, author?: string): BookPriceData {
-  const basePrice = estimateBasePriceFromTitle(title, author);
   const marketability = assessMarketability(title, author, {});
+  const estimatedSaleValue = calculateEstimatedSaleValue(0, marketability);
   
   return {
-    averagePrice: basePrice,
+    averagePrice: estimatedSaleValue,
     marketability,
-    estimatedSaleValue: calculateEstimatedSaleValue(basePrice, marketability)
+    estimatedSaleValue
   };
 }
 
@@ -259,11 +264,8 @@ export async function enhanceBookAnalysis(books: Array<{
   for (const book of books) {
     const marketAnalysis = await analyzeBookValue(book.title, book.author);
     
-    // Adjust for condition
+    // Usar valores diretos da análise de mercado (já considerando condição)
     let finalValue = marketAnalysis.estimatedSaleValue;
-    if (book.condition === 'usado') {
-      finalValue *= 0.8; // 20% reduction for used condition
-    }
     
     enhancedBooks.push({
       ...book,
