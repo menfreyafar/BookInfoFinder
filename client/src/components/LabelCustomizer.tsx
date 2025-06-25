@@ -181,14 +181,14 @@ export default function LabelCustomizer({ templateImage, onSaveLayout, initialEl
   const selectedElementData = elements.find(el => el.id === selectedElement);
 
   return (
-    <div className="flex gap-6 h-[600px]">
+    <div className="flex gap-6 min-h-[600px] max-h-[70vh]">
       {/* Canvas */}
       <div className="flex-1">
         <Card className="h-full">
           <CardHeader>
             <CardTitle>Editor de Layout da Etiqueta</CardTitle>
           </CardHeader>
-          <CardContent className="h-[500px] p-4">
+          <CardContent className="min-h-[500px] max-h-[60vh] p-4 overflow-hidden">
             <div
               ref={canvasRef}
               className="relative border-2 border-dashed border-gray-300 mx-auto bg-white overflow-hidden cursor-crosshair"
@@ -240,7 +240,7 @@ export default function LabelCustomizer({ templateImage, onSaveLayout, initialEl
       </div>
 
       {/* Controls */}
-      <div className="w-80 space-y-4">
+      <div className="w-80 space-y-4 overflow-y-auto max-h-[70vh] pr-2">
         {/* Add Elements */}
         <Card>
           <CardHeader>

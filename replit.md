@@ -1,40 +1,53 @@
-# Projeto Sistema de Gestão de Livraria/Sebo
+# Sistema de Gestão de Livraria/Sebo - Luar Sebo
 
 ## Visão Geral
-Sistema completo de gestão para livrarias e sebos, com funcionalidades de:
-- Cadastro e gestão de livros
-- Controle de estoque e prateleiras
-- Geração de etiquetas personalizadas 
-- Integração com Estante Virtual
-- Sistema de trocas e análise de preços
-- Dashboard com estatísticas
+Sistema completo de gestão para livrarias e sebos, desenvolvido com React (frontend) e Express.js (backend). O sistema gerencia inventário de livros, vendas, etiquetas personalizadas e integração com a Estante Virtual.
 
 ## Arquitetura do Projeto
-- **Backend**: Express.js com TypeScript
-- **Frontend**: React com Vite
-- **Banco de Dados**: SQLite com Drizzle ORM
-- **UI**: Tailwind CSS + shadcn/ui components
+- **Frontend**: React com TypeScript, Vite, TailwindCSS, Radix UI
+- **Backend**: Express.js com TypeScript, SQLite/Drizzle ORM
+- **Banco de Dados**: SQLite para desenvolvimento, PostgreSQL para produção
 - **Autenticação**: Passport.js com estratégia local
-
-## Configurações Padrão
-Sistema modificado para salvar configurações como padrão:
-- Template de etiquetas personalizado salvo automaticamente
-- Layout de etiquetas mantido como configuração padrão
-- Informações da marca (nome, logo, endereço, telefone) persistidas
-- Configurações aplicadas automaticamente a novas etiquetas
+- **APIs Externas**: Estante Virtual, OpenAI, Google Gemini
 
 ## Funcionalidades Principais
-1. **Gestão de Livros**: CRUD completo com ISBN, sinopse, condição
-2. **Estoque**: Controle por prateleiras com códigos únicos
-3. **Etiquetas**: Geração de PDFs com templates personalizáveis
-4. **Importação**: Integração automática com Estante Virtual
-5. **Análise**: Comparação de preços e sugestões de trocas
+1. Dashboard com estatísticas e visão geral
+2. Cadastro e gestão de livros
+3. Controle de estoque e prateleiras
+4. Sistema de etiquetas personalizáveis
+5. Análise de preços e tendências
+6. Importação/exportação para Estante Virtual
+7. Relatórios e análises
+
+## Estado Atual
+- ✅ Migração para ambiente Replit concluída
+- ✅ Sistema de etiquetas personalizáveis implementado
+- ✅ Configurações de marca salvam como padrão
+- ✅ Interface de customização com scroll funcional
+- ✅ Todas as dependências instaladas
+- ✅ Aplicação rodando na porta 5000
+
+## Configurações de Etiquetas
+O sistema agora suporta:
+- Layout personalizável de etiquetas
+- Upload de templates de marca/logo
+- Configurações de marca (nome, endereço, telefone, logo)
+- Todas as configurações são salvas como padrão automaticamente
+- Interface com scroll para customização
+
+## Preferências do Usuário
+- Idioma: Português brasileiro
+- Interface limpa e funcional
+- Configurações devem persistir como padrão
+- Foco em usabilidade para livreiros/sebistas
 
 ## Mudanças Recentes
-- 26/01/2025: Migração para ambiente Replit padrão concluída
-- Configurações de template e marca agora salvas como padrão
-- Sistema de brand info adicionado ao customizador de etiquetas
-- Melhorias na persistência de configurações personalizadas
+- 2025-01-23: Migração do Replit Agent para ambiente Replit padrão
+- 2025-01-23: Implementado sistema de configurações de marca persistentes
+- 2025-01-23: Corrigido layout da interface de customização de etiquetas
+- 2025-01-23: Adicionado scroll na tela de configuração de etiquetas
 
-## Status Atual
-Projeto completamente funcional no ambiente Replit com todas as dependências instaladas e configurações de segurança implementadas.
+## Próximos Passos
+- Sistema está pronto para uso e desenvolvimento adicional
+- Usuário pode personalizar etiquetas e configurações de marca
+- Todas as funcionalidades principais estão operacionais

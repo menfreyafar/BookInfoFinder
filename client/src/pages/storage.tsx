@@ -281,7 +281,7 @@ export default function StoragePage() {
                           <Settings className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-6xl h-[700px]">
+                      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Personalizar Layout da Etiqueta</DialogTitle>
                         </DialogHeader>
