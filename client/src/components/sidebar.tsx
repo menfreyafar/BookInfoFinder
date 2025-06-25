@@ -27,6 +27,7 @@ const navigation = [
   { name: "Busca por ISBN", href: "/isbn-search", icon: Barcode },
   { name: "Catálogo", href: "/catalog", icon: Library },
   { name: "Estoque", href: "/inventory", icon: Package },
+  { name: "Guarda", href: "/storage", icon: Package },
   { name: "Livros em Falta", href: "/missing-books", icon: AlertTriangle },
   { name: "Ponto de Venda", href: "/pos", icon: ShoppingCart },
   { name: "Pedidos", href: "/orders", icon: Truck },

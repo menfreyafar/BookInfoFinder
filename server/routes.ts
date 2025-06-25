@@ -10,6 +10,7 @@ import { estanteVirtualService } from "./services/estanteVirtual";
 import { orderImporterService } from "./services/orderImporter";
 import { dailyExportScheduler } from "./services/scheduler";
 import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema, insertExchangeSchema, insertExchangeItemSchema, insertExchangeGivenBookSchema, insertPreCatalogBookSchema } from "@shared/schema";
+import PDFDocument from 'pdfkit';
 import { z } from "zod";
 import multer from "multer";
 
@@ -76,7 +77,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/books", async (req, res) => {
     try {
       const validatedData = insertBookSchema.parse(req.body);
-      const book = await storage.createBook(validatedData);
+      
+      // Generate unique code
+      const year = new Date().getFullYear();
+      const tempId = Date.now();
+      const uniqueCode = `LU-${tempId}-${year}`;
+      
+      const book = await storage.createBook({
+        ...validatedData,
+        uniqueCode,
+        isStored: false
+      });
+      
+      // Update unique code with real ID
+      const finalUniqueCode = `LU-${book.id}-${year}`;
+      const { sqlite } = await import("../db");
+      sqlite.prepare('UPDATE books SET unique_code = ? WHERE id = ?').run(finalUniqueCode, book.id);
       
       // Create inventory entry if quantity is provided
       if (req.body.quantity !== undefined) {
@@ -88,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      res.status(201).json(book);
+      res.status(201).json({ ...book, uniqueCode: finalUniqueCode });
     } catch (error) {
       console.error("Error creating book:", error);
       if (error instanceof z.ZodError) {
@@ -611,6 +627,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting missing book:", error);
       res.status(500).json({ error: "Erro ao deletar livro em falta" });
+    }
+  });
+
+  // Shelves routes
+  app.get("/api/shelves", async (req, res) => {
+    try {
+      const { sqlite } = await import("../db");
+      const shelves = sqlite.prepare('SELECT * FROM shelves WHERE is_active = 1 ORDER BY name').all();
+      res.json(shelves);
+    } catch (error) {
+      console.error("Error fetching shelves:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/shelves", async (req, res) => {
+    try {
+      const { name, description, location, capacity } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ error: "Nome da estante é obrigatório" });
+      }
+
+      const { sqlite } = await import("../db");
+      const stmt = sqlite.prepare(`
+        INSERT INTO shelves (name, description, location, capacity, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+      
+      const result = stmt.run(name, description, location, capacity, Date.now(), Date.now());
+      const shelf = sqlite.prepare('SELECT * FROM shelves WHERE id = ?').get(result.lastInsertRowid);
+
+      res.status(201).json(shelf);
+    } catch (error) {
+      console.error("Error creating shelf:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.put("/api/shelves/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, description, location, capacity } = req.body;
+
+      const { sqlite } = await import("../db");
+      const stmt = sqlite.prepare(`
+        UPDATE shelves SET name = ?, description = ?, location = ?, capacity = ?, updated_at = ?
+        WHERE id = ?
+      `);
+      
+      stmt.run(name, description, location, capacity, Date.now(), id);
+      const shelf = sqlite.prepare('SELECT * FROM shelves WHERE id = ?').get(id);
+
+      if (!shelf) {
+        return res.status(404).json({ error: "Estante não encontrada" });
+      }
+
+      res.json(shelf);
+    } catch (error) {
+      console.error("Error updating shelf:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.delete("/api/shelves/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+
+      const { sqlite } = await import("../db");
+      
+      // Check if shelf has books
+      const booksCount = sqlite.prepare('SELECT COUNT(*) as count FROM books WHERE shelf = (SELECT name FROM shelves WHERE id = ?)').get(id);
+      
+      if (booksCount.count > 0) {
+        return res.status(400).json({ error: "Não é possível excluir estante com livros" });
+      }
+
+      sqlite.prepare('UPDATE shelves SET is_active = 0, updated_at = ? WHERE id = ?').run(Date.now(), id);
+
+      res.json({ message: "Estante removida com sucesso" });
+    } catch (error) {
+      console.error("Error deleting shelf:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  // Storage routes
+  app.get("/api/storage/pending", async (req, res) => {
+    try {
+      const { sqlite } = await import("../db");
+      const books = sqlite.prepare(`
+        SELECT 
+          b.id, b.title, b.author, b.edition, b.condition, b.shelf, 
+          b.unique_code, b.is_stored, b.stored_at, b.created_at,
+          i.quantity
+        FROM books b
+        LEFT JOIN inventory i ON b.id = i.book_id
+        WHERE b.is_stored = 0 OR b.is_stored IS NULL
+        ORDER BY b.created_at DESC
+      `).all();
+
+      res.json(books.map(book => ({
+        ...book,
+        inventory: book.quantity ? { quantity: book.quantity } : null
+      })));
+    } catch (error) {
+      console.error("Error fetching books for storage:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.patch("/api/storage/mark-stored/:id", async (req, res) => {
+    try {
+      const bookId = parseInt(req.params.id);
+
+      const { sqlite } = await import("../db");
+      sqlite.prepare(`
+        UPDATE books SET is_stored = 1, stored_at = ?, updated_at = ?
+        WHERE id = ?
+      `).run(Date.now(), Date.now(), bookId);
+
+      const book = sqlite.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+
+      if (!book) {
+        return res.status(404).json({ error: "Livro não encontrado" });
+      }
+
+      res.json(book);
+    } catch (error) {
+      console.error("Error marking book as stored:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  });
+
+  app.post("/api/storage/generate-pdf", async (req, res) => {
+    try {
+      const { sqlite } = await import("../db");
+      const books = sqlite.prepare(`
+        SELECT title, author, shelf, unique_code, condition, edition
+        FROM books 
+        WHERE is_stored = 0 OR is_stored IS NULL
+        ORDER BY shelf, title
+      `).all();
+
+      // Create PDF
+      const doc = new PDFDocument({ margin: 50 });
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="lista-guarda.pdf"');
+      
+      doc.pipe(res);
+
+      // Header
+      doc.fontSize(18).text('Lista de Livros para Guarda', { align: 'center' });
+      doc.fontSize(12).text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
+      doc.moveDown(2);
+
+      // Group by shelf
+      const groupedByShelf = books.reduce((acc, book) => {
+        const shelf = book.shelf || "Sem Estante";
+        if (!acc[shelf]) acc[shelf] = [];
+        acc[shelf].push(book);
+        return acc;
+      }, {});
+
+      // Content
+      for (const [shelfName, shelfBooks] of Object.entries(groupedByShelf)) {
+        doc.fontSize(14).fillColor('black').text(`\n${shelfName} (${shelfBooks.length} livros)`, { underline: true });
+        doc.moveDown(0.5);
+
+        shelfBooks.forEach((book, index) => {
+          doc.fontSize(10);
+          doc.text(`${index + 1}. ${book.title}`, { indent: 20 });
+          doc.text(`   Autor: ${book.author}`, { indent: 20 });
+          if (book.edition) doc.text(`   Edição: ${book.edition}`, { indent: 20 });
+          if (book.condition) doc.text(`   Condição: ${book.condition}`, { indent: 20 });
+          if (book.unique_code) doc.text(`   Código: ${book.unique_code}`, { indent: 20 });
+          doc.text(`   ☐ Guardado`, { indent: 20 });
+          doc.moveDown(0.3);
+        });
+        
+        doc.moveDown();
+      }
+
+      doc.end();
+
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ error: "Erro interno do servidor" });
     }
   });
 

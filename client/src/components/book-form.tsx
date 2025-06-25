@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { BookWithInventory } from "@shared/schema";
+import { BookWithInventory, Shelf } from "@shared/schema";
 
 const bookFormSchema = z.object({
   isbn: z.string().optional(),
@@ -45,6 +45,16 @@ export default function BookForm({ book, onClose }: BookFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Load available shelves
+  const { data: shelves = [] } = useQuery<Shelf[]>({
+    queryKey: ['shelves'],
+    queryFn: async () => {
+      const response = await fetch('/api/shelves');
+      if (!response.ok) throw new Error('Erro ao carregar estantes');
+      return response.json();
+    }
+  });
 
   const form = useForm<BookFormData>({
     resolver: zodResolver(bookFormSchema),
@@ -261,12 +271,22 @@ export default function BookForm({ book, onClose }: BookFormProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="shelf">Estante</Label>
-              <Input
-                id="shelf"
-                {...form.register("shelf")}
-                placeholder="A1, B2, etc."
-              />
+              <Label htmlFor="shelf">Estante *</Label>
+              <Select value={form.watch("shelf") || ""} onValueChange={(value) => form.setValue("shelf", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a estante" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shelves.map((shelf) => (
+                    <SelectItem key={shelf.id} value={shelf.name}>
+                      {shelf.name} - {shelf.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground mt-1">
+                Livro será adicionado à lista de guarda desta estante
+              </p>
             </div>
             <div>
               <Label htmlFor="weight">Peso (gramas)</Label>

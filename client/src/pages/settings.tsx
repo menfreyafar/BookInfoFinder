@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
+import ShelvesManagement from "./shelves-management";
 
 function TopBar() {
   return (
@@ -326,6 +327,10 @@ export default function Settings() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="shelves">
+            <ShelvesManagement />
           </TabsContent>
         </Tabs>
       </div>

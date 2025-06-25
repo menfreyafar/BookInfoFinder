@@ -11,6 +11,7 @@ const sqlite = new Database(dbPath);
 sqlite.pragma('foreign_keys = ON');
 
 export const db = drizzle(sqlite, { schema });
+export { sqlite };
 
 // Export a placeholder pool for compatibility
 export const pool = {

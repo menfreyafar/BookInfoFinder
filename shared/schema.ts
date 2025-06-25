@@ -20,6 +20,9 @@ export const books = sqliteTable("books", {
   condition: text("condition"),
   coverImage: text("cover_image"),
   shelf: text("shelf"), // estante para organização
+  uniqueCode: text("unique_code").unique(), // código único para identificação (LU-{ID}-{ANO})
+  storedAt: integer("stored_at", { mode: 'timestamp' }), // quando foi guardado na estante
+  isStored: integer("is_stored", { mode: 'boolean' }).default(false), // se já foi guardado fisicamente
   createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
@@ -174,6 +177,19 @@ export const missingBooks = sqliteTable("missing_books", {
   lastChecked: integer("last_checked", { mode: 'timestamp' }),
 });
 
+// Tabela para gerenciar estantes
+export const shelves = sqliteTable("shelves", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  location: text("location"), // localização física (ex: "Parede Norte", "Entrada")
+  capacity: integer("capacity"), // capacidade máxima de livros
+  currentCount: integer("current_count").default(0), // quantidade atual de livros
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
 // Relations
 export const booksRelations = relations(books, ({ one, many }) => ({
   inventory: one(inventory, {
@@ -319,6 +335,13 @@ export const insertMissingBookSchema = createInsertSchema(missingBooks).omit({
   lastChecked: true,
 });
 
+export const insertShelfSchema = createInsertSchema(shelves).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  currentCount: true,
+});
+
 // Types
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;
@@ -363,6 +386,9 @@ export type InsertPreCatalogBook = z.infer<typeof insertPreCatalogBookSchema>;
 
 export type MissingBook = typeof missingBooks.$inferSelect;
 export type InsertMissingBook = z.infer<typeof insertMissingBookSchema>;
+
+export type Shelf = typeof shelves.$inferSelect;
+export type InsertShelf = z.infer<typeof insertShelfSchema>;
 
 export type ExchangeWithItems = Exchange & {
   items: ExchangeItem[];
