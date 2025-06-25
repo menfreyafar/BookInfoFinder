@@ -19,13 +19,15 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - **File Uploads**: Multer
 
 ## Recent Changes
-### 2025-06-25 - Sistema de Modelos Personalizados de Etiquetas Implementado
+### 2025-06-25 - Interface de Personalização Visual de Etiquetas Implementada
+- ✅ **Editor drag-and-drop** para posicionamento visual de elementos
 - ✅ **Upload de modelos personalizados** (PDF, PNG, JPG)
-- ✅ **Dimensões personalizáveis**: 10cm altura × 2,5cm largura
-- ✅ **Inserção automática de dados** nos modelos carregados
-- ✅ **Interface intuitiva** para carregar e gerar etiquetas personalizadas
-- ✅ **Compatibilidade total** com sistema existente de etiquetas
-- ✅ **Fontes ajustadas** para espaços menores (2,5cm largura)
+- ✅ **Dimensões exatas**: 10cm altura × 2,5cm largura
+- ✅ **Posicionamento preciso** de preço, título, autor, sinopse, código
+- ✅ **Controles visuais** para fonte, cor, alinhamento, opacidade
+- ✅ **Preview em tempo real** sobre modelo carregado
+- ✅ **Sistema de salvamento** de layouts personalizados
+- ✅ **Geração automática** de PDFs com layout customizado
 
 ### 2025-06-25 - Migração para Replit Finalizada e Modelo de Etiquetas Atualizado
 - ✅ Migração completa do Replit Agent para ambiente Replit finalizada

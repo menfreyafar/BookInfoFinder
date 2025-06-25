@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Package, PackageCheck, FileText, QrCode, Archive, Upload, Download } from "lucide-react";
+import { Package, PackageCheck, FileText, QrCode, Archive, Upload, Download, Settings } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import LabelCustomizer from "@/components/LabelCustomizer";
 import { Label } from "@/components/ui/label";
 import type { Book, Shelf } from "@shared/schema";
 
@@ -19,6 +21,8 @@ export default function StoragePage() {
   const [selectedShelf, setSelectedShelf] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [templateFile, setTemplateFile] = useState<File | null>(null);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+  const [templatePreview, setTemplatePreview] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Books waiting to be stored (cadastrados mas não guardados)
@@ -42,7 +46,7 @@ export default function StoragePage() {
   });
 
   // Template info
-  const { data: templateInfo } = useQuery({
+  const { data: templateInfo, refetch: refetchTemplateInfo } = useQuery({
     queryKey: ['template-info'],
     queryFn: async () => {
       const response = await fetch('/api/storage/template-info');
@@ -118,7 +122,7 @@ export default function StoragePage() {
         title: "Sucesso",
         description: "Modelo personalizado carregado com sucesso!",
       });
-      queryClient.invalidateQueries({ queryKey: ['template-info'] });
+      refetchTemplateInfo();
       setTemplateFile(null);
     },
     onError: () => {
@@ -132,12 +136,45 @@ export default function StoragePage() {
 
   const handleTemplateUpload = () => {
     if (templateFile) {
+      // Create preview URL for the customizer
+      const previewUrl = URL.createObjectURL(templateFile);
+      setTemplatePreview(previewUrl);
+      
       uploadTemplateMutation.mutate(templateFile);
     }
   };
 
+  const saveCustomLayout = async (elements: any[]) => {
+    try {
+      const response = await fetch('/api/storage/save-layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ elements }),
+      });
+      
+      if (!response.ok) throw new Error('Erro ao salvar layout');
+      
+      toast({
+        title: "Layout Salvo",
+        description: "Layout personalizado salvo com sucesso!",
+      });
+      
+      setIsCustomizerOpen(false);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar layout personalizado",
+        variant: "destructive",
+      });
+    }
+  };
+
   const generateCustomPdf = () => {
-    window.open('/api/storage/custom-pdf', '_blank');
+    window.open('/api/storage/custom-layout-pdf', '_blank');
+    toast({
+      title: "PDF Gerado",
+      description: "Etiquetas com layout personalizado baixadas com sucesso"
+    });
   };
 
   const filteredBooks = booksToStore.filter(book => {
@@ -225,15 +262,39 @@ export default function StoragePage() {
               </div>
               
               {templateInfo?.hasTemplate && (
-                <Button
-                  onClick={generateCustomPdf}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Gerar com Modelo Personalizado
-                </Button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={generateCustomPdf}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Gerar PDF
+                    </Button>
+                    
+                    <Dialog open={isCustomizerOpen} onOpenChange={setIsCustomizerOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-6xl h-[700px]">
+                        <DialogHeader>
+                          <DialogTitle>Personalizar Layout da Etiqueta</DialogTitle>
+                        </DialogHeader>
+                        <LabelCustomizer
+                          templateImage={templatePreview}
+                          onSaveLayout={saveCustomLayout}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <p className="text-xs text-green-600">
+                    ✓ Modelo: {templateInfo.templateName}
+                  </p>
+                </div>
               )}
             </div>
           </Card>
