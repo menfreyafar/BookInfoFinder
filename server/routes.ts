@@ -779,15 +779,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ORDER BY b.shelf, b.title
       `).all();
 
-      // Get store settings
+      // Get store settings and custom template/layout configurations
       const settings = sqlite.prepare('SELECT * FROM settings').all();
       const settingsMap = settings.reduce((acc, setting) => {
         acc[setting.key] = setting.value;
         return acc;
       }, {});
 
-      const storeName = settingsMap.store_name || 'Luar Sebo e Livraria';
+      const storeName = settingsMap.default_store_name || settingsMap.store_name || 'Luar Sebo e Livraria';
       const storeSubtitle = settingsMap.brand_subtitle || '';
+      
+      // Get custom layout and template settings
+      const customLayoutElements = settingsMap.custom_layout_elements ? JSON.parse(settingsMap.custom_layout_elements) : null;
+      const customTemplateData = settingsMap.custom_template_data || settingsMap.default_template_data;
+      const customTemplateName = settingsMap.custom_template_name || settingsMap.default_template_name;
 
       // Create PDF
       const doc = new PDFDocument({ 
@@ -838,6 +843,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Bookmarks header
         doc.fontSize(16).text('Etiquetas/Marca-páginas dos Livros', { align: 'center' });
+        if (customTemplateName) {
+          doc.fontSize(10).text(`Modelo: ${customTemplateName}`, { align: 'center' });
+        }
         doc.moveDown(1);
         
         // Bookmark dimensions - exactly like user's model
@@ -869,29 +877,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Draw bookmark border
           doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
           
-          // Price at the top - exactly like user's model
-          const finalPrice = book.used_price || book.new_price || 0;
-          if (finalPrice > 0) {
-            doc.fontSize(10).font('Helvetica-Bold')
-              .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 5, { 
+          // Use custom layout if available, otherwise use default layout
+          if (customLayoutElements && customLayoutElements.length > 0) {
+            // Apply custom template background if available
+            if (customTemplateData) {
+              try {
+                // Note: Background image implementation would require additional setup
+                // For now, we'll use the custom layout positioning
+              } catch (error) {
+                console.warn('Could not apply background template');
+              }
+            }
+            
+            // Render custom layout elements
+            customLayoutElements.forEach((element) => {
+              const elementX = x + (element.x / 100) * bookmarkWidth;
+              const elementY = y + (element.y / 100) * bookmarkHeight;
+              const elementWidth = (element.width / 100) * bookmarkWidth;
+              const elementHeight = (element.height / 100) * bookmarkHeight;
+              
+              // Add background for element
+              doc.save();
+              doc.fillOpacity(element.opacity || 1);
+              doc.rect(elementX, elementY, elementWidth, elementHeight).fill(element.backgroundColor || '#ffffff');
+              doc.restore();
+              
+              // Get content based on element type
+              let content = '';
+              switch (element.type) {
+                case 'price':
+                  const finalPrice = book.used_price || book.new_price || 0;
+                  content = finalPrice > 0 ? `R$ ${finalPrice.toFixed(2)}` : '';
+                  break;
+                case 'title':
+                  content = book.title.toUpperCase();
+                  break;
+                case 'author':
+                  content = book.author;
+                  break;
+                case 'synopsis':
+                  content = book.synopsis || '';
+                  if (content.length > 200) content = content.substring(0, 200) + '...';
+                  break;
+                case 'code':
+                  content = book.unique_code || '';
+                  break;
+                case 'condition':
+                  content = book.condition || '';
+                  break;
+              }
+              
+              // Render text
+              if (content) {
+                doc.save();
+                doc.fontSize(element.fontSize || 10);
+                doc.font(element.fontWeight === 'bold' ? 'Helvetica-Bold' : 'Helvetica');
+                doc.fillColor(element.color || '#000000');
+                doc.text(content, elementX + 2, elementY + 2, {
+                  width: elementWidth - 4,
+                  height: elementHeight - 4,
+                  align: element.textAlign || 'center',
+                  ellipsis: true
+                });
+                doc.restore();
+              }
+            });
+          } else {
+            // Default layout (original code)
+            const finalPrice = book.used_price || book.new_price || 0;
+            if (finalPrice > 0) {
+              doc.fontSize(10).font('Helvetica-Bold')
+                .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 5, { 
+                  width: bookmarkWidth - 10, 
+                  align: 'center'
+                });
+            }
+            
+            // Book title (bold, uppercase)
+            doc.fontSize(8).font('Helvetica-Bold')
+              .text(book.title.toUpperCase(), x + 5, y + 18, { 
+                width: bookmarkWidth - 10, 
+                align: 'center'
+              });
+            
+            // Author (centered below title)
+            doc.fontSize(7).font('Helvetica')
+              .text(book.author, x + 5, y + 30, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
           }
-          
-          // Book title (bold, uppercase) - exactly like model
-          doc.fontSize(8).font('Helvetica-Bold')
-            .text(book.title.toUpperCase(), x + 5, y + 18, { 
-              width: bookmarkWidth - 10, 
-              align: 'center'
-            });
-          
-          // Author (centered below title) - exactly like model spacing
-          doc.fontSize(7).font('Helvetica')
-            .text(book.author, x + 5, y + 30, { 
-              width: bookmarkWidth - 10, 
-              align: 'center'
-            });
           
           // Sales process info - exactly like model
           doc.fontSize(6).font('Helvetica')
