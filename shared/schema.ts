@@ -193,10 +193,12 @@ export const shelves = sqliteTable("shelves", {
 // Tabela para pedidos de clientes (Radar)
 export const customerRequests = sqliteTable("customer_requests", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  author: text("author").notNull(),
+  title: text("title"), // opcional para buscas por temática/autor
+  author: text("author"), // opcional para buscas específicas por título
+  category: text("category"), // temática/categoria desejada
   customerName: text("customer_name").notNull(),
   customerPhone: text("customer_phone").notNull(),
+  requestType: text("request_type").notNull().default("specific"), // specific, author, category
   notes: text("notes"),
   status: text("status").notNull().default("active"), // active, fulfilled, cancelled
   createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),

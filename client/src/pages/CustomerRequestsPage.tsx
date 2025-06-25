@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Phone, User, Calendar, CheckCircle, X } from "lucide-react";
+import { Plus, Search, Phone, User, Calendar, CheckCircle, X, BookOpen, UserCheck, Tag } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -15,19 +16,39 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 const customerRequestSchema = z.object({
-  title: z.string().min(1, "Título é obrigatório"),
-  author: z.string().min(1, "Autor é obrigatório"),
+  requestType: z.enum(["specific", "author", "category"], {
+    required_error: "Tipo de busca é obrigatório"
+  }),
+  title: z.string().optional(),
+  author: z.string().optional(),
+  category: z.string().optional(),
   customerName: z.string().min(1, "Nome do cliente é obrigatório"),
   customerPhone: z.string().min(1, "Telefone é obrigatório"),
   notes: z.string().optional(),
+}).refine((data) => {
+  if (data.requestType === "specific" && (!data.title || !data.author)) {
+    return false;
+  }
+  if (data.requestType === "author" && !data.author) {
+    return false;
+  }
+  if (data.requestType === "category" && !data.category) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Preencha os campos obrigatórios para o tipo de busca selecionado",
+  path: ["requestType"]
 });
 
 type CustomerRequestForm = z.infer<typeof customerRequestSchema>;
 
 interface CustomerRequest {
   id: number;
-  title: string;
-  author: string;
+  title?: string;
+  author?: string;
+  category?: string;
+  requestType: "specific" | "author" | "category";
   customerName: string;
   customerPhone: string;
   notes?: string;
@@ -46,8 +67,10 @@ export default function CustomerRequestsPage() {
   const form = useForm<CustomerRequestForm>({
     resolver: zodResolver(customerRequestSchema),
     defaultValues: {
+      requestType: "specific",
       title: "",
       author: "",
+      category: "",
       customerName: "",
       customerPhone: "",
       notes: "",

@@ -52,7 +52,7 @@ import {
 } from "@shared/schema";
 import type { Setting, InsertSetting } from "@shared/schema";
 import { db } from "../server/db";
-import { eq, desc, asc, and, or, like, lt, sql } from "drizzle-orm";
+import { eq, desc, asc, and, or, like, lt, sql, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Books
@@ -62,6 +62,13 @@ export interface IStorage {
   updateBook(id: number, book: Partial<InsertBook>): Promise<Book | undefined>;
   deleteBook(id: number): Promise<boolean>;
   searchBooks(query: string): Promise<BookWithInventory[]>;
+  advancedSearchBooks(filters: {
+    title?: string;
+    author?: string;
+    category?: string;
+    publisher?: string;
+    isbn?: string;
+  }): Promise<BookWithInventory[]>;
   getAllBooks(): Promise<BookWithInventory[]>;
   
   // Inventory
@@ -174,9 +181,49 @@ export class DatabaseStorage implements IStorage {
         or(
           like(books.title, `%${query}%`),
           like(books.author, `%${query}%`),
-          like(books.isbn, `%${query}%`)
+          like(books.isbn, `%${query}%`),
+          like(books.category, `%${query}%`),
+          like(books.publisher, `%${query}%`)
         )
       )
+      .orderBy(asc(books.title));
+
+    return result.map(row => ({
+      ...row.books,
+      inventory: row.inventory
+    }));
+  }
+
+  async advancedSearchBooks(filters: {
+    title?: string;
+    author?: string;
+    category?: string;
+    publisher?: string;
+    isbn?: string;
+  }): Promise<BookWithInventory[]> {
+    let whereConditions: any[] = [];
+
+    if (filters.title) {
+      whereConditions.push(like(books.title, `%${filters.title}%`));
+    }
+    if (filters.author) {
+      whereConditions.push(like(books.author, `%${filters.author}%`));
+    }
+    if (filters.category) {
+      whereConditions.push(like(books.category, `%${filters.category}%`));
+    }
+    if (filters.publisher) {
+      whereConditions.push(like(books.publisher, `%${filters.publisher}%`));
+    }
+    if (filters.isbn) {
+      whereConditions.push(like(books.isbn, `%${filters.isbn}%`));
+    }
+
+    const result = await db
+      .select()
+      .from(books)
+      .leftJoin(inventory, eq(books.id, inventory.bookId))
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
       .orderBy(asc(books.title));
 
     return result.map(row => ({
@@ -797,15 +844,53 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async checkForMatchingRequests(title: string, author: string): Promise<CustomerRequest[]> {
-    return db.select().from(customerRequests)
-      .where(and(
-        eq(customerRequests.status, 'active'),
-        or(
-          like(customerRequests.title, `%${title}%`),
-          like(customerRequests.author, `%${author}%`)
+  async checkForMatchingRequests(title: string, author: string, category?: string): Promise<CustomerRequest[]> {
+    const conditions = [eq(customerRequests.status, 'active')];
+    
+    const matchConditions = [];
+    
+    // Busca específica por título
+    if (title) {
+      matchConditions.push(
+        and(
+          eq(customerRequests.requestType, 'specific'),
+          like(customerRequests.title, `%${title}%`)
         )
-      ));
+      );
+    }
+    
+    // Busca por autor (tanto específica quanto geral)
+    if (author) {
+      matchConditions.push(
+        or(
+          and(
+            eq(customerRequests.requestType, 'author'),
+            like(customerRequests.author, `%${author}%`)
+          ),
+          and(
+            eq(customerRequests.requestType, 'specific'),
+            like(customerRequests.author, `%${author}%`)
+          )
+        )
+      );
+    }
+    
+    // Busca por categoria/temática
+    if (category) {
+      matchConditions.push(
+        and(
+          eq(customerRequests.requestType, 'category'),
+          like(customerRequests.category, `%${category}%`)
+        )
+      );
+    }
+    
+    if (matchConditions.length > 0) {
+      conditions.push(or(...matchConditions));
+    }
+    
+    return db.select().from(customerRequests)
+      .where(and(...conditions));
   }
 }
 
