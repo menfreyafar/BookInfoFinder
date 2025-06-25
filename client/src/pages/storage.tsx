@@ -88,7 +88,7 @@ export default function StoragePage() {
     const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          book.uniqueCode?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesShelf = !selectedShelf || book.shelf === selectedShelf;
+    const matchesShelf = selectedShelf === "all" || !selectedShelf || book.shelf === selectedShelf;
     return matchesSearch && matchesShelf;
   });
 
@@ -146,10 +146,10 @@ export default function StoragePage() {
                   <SelectValue placeholder="Filtrar por estante" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as estantes</SelectItem>
-                  {shelves.map((shelf) => (
+                  <SelectItem value="all">Todas as estantes</SelectItem>
+                  {shelves.filter(shelf => shelf.name && shelf.name.trim() !== '').map((shelf) => (
                     <SelectItem key={shelf.id} value={shelf.name}>
-                      {shelf.name} ({shelf.location})
+                      {shelf.name} ({shelf.location || 'Sem localização'})
                     </SelectItem>
                   ))}
                 </SelectContent>
