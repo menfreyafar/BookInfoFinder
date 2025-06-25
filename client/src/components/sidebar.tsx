@@ -24,7 +24,7 @@ interface Setting {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
-  { name: "Busca por ISBN", href: "/isbn-search", icon: Barcode },
+  { name: "Cadastro", href: "/isbn-search", icon: Barcode },
   { name: "Catálogo", href: "/catalog", icon: Library },
   { name: "Estoque", href: "/inventory", icon: Package },
   { name: "Guarda", href: "/storage", icon: Package },

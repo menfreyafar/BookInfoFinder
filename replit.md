@@ -19,6 +19,15 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - **File Uploads**: Multer
 
 ## Recent Changes
+### 2025-06-24 - Sistema de Guarda e Etiquetas Implementado
+- ✅ Sistema de guarda completo com estantes configuráveis
+- ✅ Aba "Guarda" para checklist de livros a serem guardados
+- ✅ Gerenciamento de estantes nas configurações
+- ✅ Sistema de códigos únicos LU-{ID}-{ANO} para identificação
+- ✅ Geração de etiquetas/marca-páginas em PDF otimizado para idosos
+- ✅ Layout com preço em destaque, informações claras e fonte grande
+- ✅ Renomeação "Busca por ISBN" → "Cadastro" conforme solicitado
+
 ### 2025-06-24 - Migração para Replit Finalizada e Sistema de Precificação Ajustado
 - ✅ Migração completa do Replit Agent para ambiente Replit finalizada
 - ✅ Todas as dependências instaladas e funcionando
@@ -67,6 +76,9 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - Precificação baseada em dados reais de mercado e demanda específica por categoria
 - Sempre manter ao menos um exemplar dos livros clássicos em estoque
 - Lista de clássicos deve incluir literatura brasileira, estrangeira, filosofia e infantil
+- **Sistema de códigos únicos**: LU-{ID}-{ANO} para identificação de exemplares
+- **Etiquetas otimizadas para idosos**: fonte grande, preço em destaque, layout claro
+- **Aba "Cadastro"** (antiga "Busca por ISBN") para cadastro de livros
 - Interface em português brasileiro
 - Design clean e funcional
 

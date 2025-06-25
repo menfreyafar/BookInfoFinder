@@ -13,6 +13,7 @@ import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleIt
 import PDFDocument from 'pdfkit';
 import { z } from "zod";
 import multer from "multer";
+import { generateBookBookmark } from "./routes/bookmarks";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -765,24 +766,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sqlite } = await import("../db");
       const books = sqlite.prepare(`
-        SELECT title, author, shelf, unique_code, condition, edition
-        FROM books 
-        WHERE is_stored = 0 OR is_stored IS NULL
-        ORDER BY shelf, title
+        SELECT 
+          b.title, b.author, b.shelf, b.unique_code, b.condition, b.edition,
+          b.used_price, b.new_price, b.synopsis, b.publisher,
+          i.sent_to_estante_virtual
+        FROM books b
+        LEFT JOIN inventory i ON b.id = i.book_id
+        WHERE b.is_stored = 0 OR b.is_stored IS NULL
+        ORDER BY b.shelf, b.title
       `).all();
 
+      // Get store settings
+      const settings = sqlite.prepare('SELECT * FROM settings').all();
+      const settingsMap = settings.reduce((acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {});
+
+      const storeName = settingsMap.store_name || 'Luar Sebo e Livraria';
+      const storeSubtitle = settingsMap.brand_subtitle || '';
+
       // Create PDF
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ 
+        margin: 30,
+        size: 'A4'
+      });
       
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="lista-guarda.pdf"');
+      res.setHeader('Content-Disposition', 'attachment; filename="lista-guarda-com-etiquetas.pdf"');
       
       doc.pipe(res);
 
-      // Header
+      // Header for list
       doc.fontSize(18).text('Lista de Livros para Guarda', { align: 'center' });
       doc.fontSize(12).text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
-      doc.moveDown(2);
+      doc.moveDown(1);
 
       // Group by shelf
       const groupedByShelf = books.reduce((acc, book) => {
@@ -792,7 +810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {});
 
-      // Content
+      // List Content
       for (const [shelfName, shelfBooks] of Object.entries(groupedByShelf)) {
         doc.fontSize(14).fillColor('black').text(`\n${shelfName} (${shelfBooks.length} livros)`, { underline: true });
         doc.moveDown(0.5);
@@ -811,6 +829,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.moveDown();
       }
 
+      // New page for bookmarks
+      if (books.length > 0) {
+        doc.addPage();
+        
+        // Bookmarks header
+        doc.fontSize(16).text('Etiquetas/Marca-páginas dos Livros', { align: 'center' });
+        doc.moveDown(1);
+        
+        // Bookmark dimensions (optimized for elderly customers)
+        const bookmarkWidth = 140;  // Width of bookmark
+        const bookmarkHeight = 200; // Height of bookmark
+        const margin = 10;
+        const cols = 4; // 4 bookmarks per row
+        const rows = 5; // 5 rows per page
+        
+        let currentX = margin;
+        let currentY = doc.y;
+        let bookmarkCount = 0;
+        
+        books.forEach((book, index) => {
+          // Calculate position
+          const col = bookmarkCount % cols;
+          const row = Math.floor(bookmarkCount / cols) % rows;
+          
+          // If we've filled a page, add new page
+          if (bookmarkCount > 0 && bookmarkCount % (cols * rows) === 0) {
+            doc.addPage();
+            currentY = 50;
+            row = 0;
+          }
+          
+          const x = margin + col * (bookmarkWidth + margin);
+          const y = currentY + row * (bookmarkHeight + margin);
+          
+          // Draw bookmark border
+          doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
+          
+          // Store name at top
+          doc.fontSize(10).font('Helvetica-Bold')
+            .text(storeName, x + 5, y + 8, { 
+              width: bookmarkWidth - 10, 
+              align: 'center'
+            });
+          
+          if (storeSubtitle) {
+            doc.fontSize(8).font('Helvetica')
+              .text(storeSubtitle, x + 5, y + 22, { 
+                width: bookmarkWidth - 10, 
+                align: 'center'
+              });
+          }
+          
+          // Separator line
+          doc.moveTo(x + 10, y + 35).lineTo(x + bookmarkWidth - 10, y + 35).stroke();
+          
+          // Book title (large, readable)
+          doc.fontSize(11).font('Helvetica-Bold')
+            .text(book.title.substring(0, 40) + (book.title.length > 40 ? '...' : ''), 
+                  x + 5, y + 42, { 
+                    width: bookmarkWidth - 10, 
+                    align: 'center'
+                  });
+          
+          // Author
+          doc.fontSize(9).font('Helvetica')
+            .text(book.author.substring(0, 30) + (book.author.length > 30 ? '...' : ''), 
+                  x + 5, y + 70, { 
+                    width: bookmarkWidth - 10, 
+                    align: 'center'
+                  });
+          
+          // Price (very large and prominent)
+          const finalPrice = book.used_price || book.new_price || 0;
+          if (finalPrice > 0) {
+            doc.fontSize(18).font('Helvetica-Bold').fillColor('red')
+              .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 88, { 
+                width: bookmarkWidth - 10, 
+                align: 'center'
+              });
+          }
+          
+          // Reset color
+          doc.fillColor('black');
+          
+          // Synopsis (small)
+          if (book.synopsis) {
+            const shortSynopsis = book.synopsis.substring(0, 80) + (book.synopsis.length > 80 ? '...' : '');
+            doc.fontSize(7).font('Helvetica')
+              .text(shortSynopsis, x + 5, y + 115, { 
+                width: bookmarkWidth - 10, 
+                align: 'left'
+              });
+          }
+          
+          // Estante Virtual indicator
+          if (book.sent_to_estante_virtual) {
+            doc.fontSize(7).font('Helvetica-Bold').fillColor('green')
+              .text('📱 Disponível Online', x + 5, y + 150, { 
+                width: bookmarkWidth - 10, 
+                align: 'center'
+              });
+          }
+          
+          // Reset color
+          doc.fillColor('black');
+          
+          // Unique code at bottom
+          if (book.unique_code) {
+            doc.fontSize(8).font('Helvetica')
+              .text(book.unique_code, x + 5, y + bookmarkHeight - 20, { 
+                width: bookmarkWidth - 10, 
+                align: 'center'
+              });
+          }
+          
+          // Edition/condition info
+          let infoText = '';
+          if (book.edition) infoText += book.edition;
+          if (book.condition) infoText += (infoText ? ' • ' : '') + book.condition;
+          if (infoText) {
+            doc.fontSize(7).font('Helvetica')
+              .text(infoText, x + 5, y + bookmarkHeight - 35, { 
+                width: bookmarkWidth - 10, 
+                align: 'center'
+              });
+          }
+          
+          bookmarkCount++;
+        });
+      }
+
       doc.end();
 
     } catch (error) {
@@ -818,6 +967,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Erro interno do servidor" });
     }
   });
+
+  // Individual book bookmark generation
+  app.get("/api/books/:id/bookmark", generateBookBookmark);
 
   app.post("/api/missing-books/import-classics", async (req, res) => {
     try {

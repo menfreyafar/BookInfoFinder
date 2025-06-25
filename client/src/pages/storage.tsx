@@ -70,7 +70,7 @@ export default function StoragePage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `lista-guarda-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = `lista-guarda-e-etiquetas-${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -79,7 +79,7 @@ export default function StoragePage() {
     onSuccess: () => {
       toast({
         title: "PDF Gerado",
-        description: "Lista de guarda baixada com sucesso"
+        description: "Lista de guarda e etiquetas dos livros baixada com sucesso"
       });
     }
   });
@@ -105,7 +105,7 @@ export default function StoragePage() {
         <div>
           <h1 className="text-2xl font-bold">Guarda de Livros</h1>
           <p className="text-muted-foreground">
-            Livros cadastrados aguardando para serem guardados nas estantes
+            Livros cadastrados aguardando para serem guardados nas estantes. O PDF inclui lista de verificação e etiquetas/marca-páginas para cada livro.
           </p>
         </div>
         <div className="flex gap-2">
@@ -115,7 +115,7 @@ export default function StoragePage() {
             variant="outline"
           >
             <FileText className="h-4 w-4 mr-2" />
-            Gerar PDF
+            Lista + Etiquetas PDF
           </Button>
         </div>
       </div>
