@@ -1057,6 +1057,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Demo storage PDF generation
   app.get("/api/storage/demo-pdf", generateDemoStoragePDF);
 
+  // Manual PDF generation
+  app.get("/api/manual/download", async (req: Request, res: Response) => {
+    try {
+      const { generateManualPDF } = await import("./routes/manual");
+      await generateManualPDF(req, res);
+    } catch (error) {
+      console.error("Error generating manual PDF:", error);
+      res.status(500).json({ error: "Erro ao gerar manual em PDF" });
+    }
+  });
+
   // Shelves routes
   app.get("/api/shelves", getAllShelves);
   app.post("/api/shelves", createShelf);
