@@ -962,45 +962,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 let processedContent = content;
                 
                 if (element.type === 'synopsis') {
-                  // Calculate text constraints for synopsis
-                  const lineHeight = element.fontSize * 1.4;
-                  const maxLines = Math.floor(availableHeight / lineHeight);
-                  const charsPerLine = Math.floor(availableWidth / (element.fontSize * 0.5));
-                  const maxChars = Math.max(30, maxLines * charsPerLine);
-                  
-                  if (processedContent.length > maxChars) {
-                    processedContent = processedContent.substring(0, maxChars - 3).trim() + '...';
-                  }
-                  
-                  // Render synopsis with controlled wrapping
+                  // Render synopsis with natural line wrapping (no truncation)
                   doc.text(processedContent, textX, textY, {
                     width: availableWidth,
                     height: availableHeight,
                     align: element.textAlign || 'center',
-                    ellipsis: true,
                     lineGap: 1
                   });
                 } else if (element.type === 'title') {
-                  // Handle title with truncation if needed
-                  const maxChars = Math.floor(availableWidth / (element.fontSize * 0.6));
-                  if (processedContent.length > maxChars) {
-                    processedContent = processedContent.substring(0, maxChars - 3).trim() + '...';
-                  }
-                  
+                  // Allow title to wrap to multiple lines
                   doc.text(processedContent, textX, textY, {
                     width: availableWidth,
-                    align: element.textAlign || 'center'
+                    height: availableHeight,
+                    align: element.textAlign || 'center',
+                    lineGap: 0.5
                   });
                 } else {
-                  // Handle other elements (price, author, code, condition)
-                  const maxChars = Math.floor(availableWidth / (element.fontSize * 0.6));
-                  if (processedContent.length > maxChars) {
-                    processedContent = processedContent.substring(0, maxChars - 3).trim() + '...';
-                  }
-                  
+                  // Handle other elements with natural wrapping
                   doc.text(processedContent, textX, textY, {
                     width: availableWidth,
-                    align: element.textAlign || 'center'
+                    height: availableHeight,
+                    align: element.textAlign || 'center',
+                    lineGap: 0.5
                   });
                 }
                 
