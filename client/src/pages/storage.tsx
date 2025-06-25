@@ -117,6 +117,15 @@ export default function StoragePage() {
             <FileText className="h-4 w-4 mr-2" />
             Lista + Etiquetas PDF
           </Button>
+          <Button
+            onClick={() => {
+              window.open('/api/storage/demo-pdf', '_blank');
+            }}
+            variant="secondary"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Ver Modelo
+          </Button>
         </div>
       </div>
 

@@ -14,6 +14,7 @@ import PDFDocument from 'pdfkit';
 import { z } from "zod";
 import multer from "multer";
 import { generateBookBookmark } from "./routes/bookmarks";
+import { generateDemoStoragePDF } from "./routes/demo";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -970,6 +971,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Individual book bookmark generation
   app.get("/api/books/:id/bookmark", generateBookBookmark);
+  
+  // Demo storage PDF generation
+  app.get("/api/storage/demo-pdf", generateDemoStoragePDF);
 
   app.post("/api/missing-books/import-classics", async (req, res) => {
     try {
