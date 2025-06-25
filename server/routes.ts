@@ -1008,7 +1008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             });
           } else {
-            // Default layout (original code)
+            // Default layout - only when no custom layout is available
             const finalPrice = book.used_price || book.new_price || 0;
             if (finalPrice > 0) {
               doc.fontSize(10).font('Helvetica-Bold')
@@ -1018,85 +1018,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
             }
             
-            // Book title (bold, uppercase)
             doc.fontSize(8).font('Helvetica-Bold')
               .text(book.title.toUpperCase(), x + 5, y + 18, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
             
-            // Author (centered below title)
             doc.fontSize(7).font('Helvetica')
               .text(book.author, x + 5, y + 30, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
-          }
-          
-          // Sales process info - exactly like model
-          doc.fontSize(6).font('Helvetica')
-            .text('Processo de vendas', x + 5, y + 42, { 
-              width: bookmarkWidth - 10, 
-              align: 'left'
-            })
-            .text('em cinco etapas', x + 5, y + 50, { 
-              width: bookmarkWidth - 10, 
-              align: 'left'
-            });
-          
-          // Synopsis (justified text) - exactly like model format
-          if (book.synopsis) {
-            let synopsis = book.synopsis;
-            // Limit to fit exactly like the model
-            if (synopsis.length > 500) {
-              synopsis = synopsis.substring(0, 500) + '...';
+              
+            if (book.synopsis) {
+              let synopsis = book.synopsis;
+              if (synopsis.length > 200) {
+                synopsis = synopsis.substring(0, 200) + '...';
+              }
+              
+              doc.fontSize(6).font('Helvetica')
+                .text(synopsis, x + 5, y + 45, { 
+                  width: bookmarkWidth - 10, 
+                  align: 'center',
+                  lineGap: 0.5
+                });
             }
             
-            doc.fontSize(5.5).font('Helvetica')
-              .text(synopsis, x + 5, y + 58, { 
-                width: bookmarkWidth - 10, 
-                align: 'justify',
-                lineGap: 0.3
-              });
-          }
-          
-          // Estante Virtual indicator - exactly like model position
-          if (book.sent_to_estante_virtual) {
-            doc.fontSize(6).font('Helvetica')
-              .text('Ø=Üñ Disponível Online', x + 5, y + 150, { 
-                width: bookmarkWidth - 10, 
-                align: 'center'
-              });
-          }
-          
-          // Unique code at bottom
-          if (book.unique_code) {
-            doc.fontSize(8).font('Helvetica')
-              .text(book.unique_code, x + 5, y + bookmarkHeight - 20, { 
-                width: bookmarkWidth - 10, 
-                align: 'center'
-              });
-          }
-          
-          // Edition and condition info - exactly like model
-          let infoText = '';
-          if (book.edition) infoText += book.edition;
-          if (book.condition) infoText += (infoText ? ' • ' : '') + book.condition;
-          if (infoText) {
-            doc.fontSize(6).font('Helvetica')
-              .text(infoText, x + 5, y + 162, { 
-                width: bookmarkWidth - 10, 
-                align: 'center'
-              });
-          }
-          
-          // Unique code at bottom - exactly like model
-          if (book.unique_code) {
-            doc.fontSize(6).font('Helvetica')
-              .text(book.unique_code, x + 5, y + 172, { 
-                width: bookmarkWidth - 10, 
-                align: 'center'
-              });
+            if (book.unique_code) {
+              doc.fontSize(8).font('Helvetica')
+                .text(book.unique_code, x + 5, y + bookmarkHeight - 15, { 
+                  width: bookmarkWidth - 10, 
+                  align: 'center'
+                });
+            }
           }
           
           bookmarkCount++;
