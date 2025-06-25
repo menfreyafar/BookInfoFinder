@@ -19,6 +19,14 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - **File Uploads**: Multer
 
 ## Recent Changes
+### 2025-06-24 - Migração para Replit Finalizada e Sistema de Precificação Ajustado
+- ✅ Migração completa do Replit Agent para ambiente Replit finalizada
+- ✅ Todas as dependências instaladas e funcionando
+- ✅ APIs de análise de imagem (Gemini + OpenAI) configuradas
+- ✅ Sistema de precificação ajustado conforme padrões do usuário
+- ✅ Análise automática de fotos funcionando com 9 livros identificados
+- ✅ Percentuais de troca alinhados com avaliação manual
+
 ### 2025-01-24 - Migração para Replit Completa e Lista de Clássicos Atualizada
 - ✅ Migração completa do projeto para ambiente Replit
 - ✅ Banco de dados convertido de PostgreSQL para SQLite para compatibilidade

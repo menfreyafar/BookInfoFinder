@@ -91,22 +91,37 @@ function estimateBasePriceFromTitle(title: string, author?: string): number {
   const titleLower = title.toLowerCase();
   const authorLower = author?.toLowerCase() || '';
   
-  // Classic literature and philosophy (high value)
-  const classicKeywords = ['república', 'contrato social', 'pensadores', 'platão', 'rousseau', 'fromm', 'anatomia'];
-  if (classicKeywords.some(keyword => titleLower.includes(keyword) || authorLower.includes(keyword))) {
+  // Anatomia da Destrutividade Humana - Erich Fromm (alta demanda em filosofia)
+  if (titleLower.includes('anatomia') && authorLower.includes('fromm')) {
     return 35.00;
   }
   
-  // Academic/university books (medium-high value)
-  const academicKeywords = ['bioética', 'epistemologia', 'teologia', 'campanella'];
-  if (academicKeywords.some(keyword => titleLower.includes(keyword) || authorLower.includes(keyword))) {
-    return 45.00;
+  // Bioética - valor acadêmico específico
+  if (titleLower.includes('bioética')) {
+    return 30.00;
   }
   
-  // Religious/theological books (medium value)
-  const religiousKeywords = ['teológicas', 'curso', 'distância'];
-  if (religiousKeywords.some(keyword => titleLower.includes(keyword))) {
-    return 40.00;
+  // Os Pensadores - domínio público, valor baixo
+  if (titleLower.includes('pensadores')) {
+    return 25.00;
+  }
+  
+  // Clássicos de filosofia (Platão, Rousseau, etc.)
+  const classicKeywords = ['república', 'contrato social', 'cidade do sol'];
+  const classicAuthors = ['platão', 'rousseau', 'campanella'];
+  if (classicKeywords.some(keyword => titleLower.includes(keyword)) || 
+      classicAuthors.some(author => authorLower.includes(author))) {
+    return 25.00;
+  }
+  
+  // Livros técnicos/epistemologia
+  if (titleLower.includes('epistemologia') || titleLower.includes('naturalização')) {
+    return 25.00;
+  }
+  
+  // Livros teológicos - giro muito específico
+  if (titleLower.includes('teológicas') || titleLower.includes('paisagens')) {
+    return 20.00;
   }
   
   // Default pricing for unknown books
@@ -167,20 +182,29 @@ function assessMarketability(title: string, author?: string, priceData: any): 'a
   const titleLower = title.toLowerCase();
   const authorLower = author?.toLowerCase() || '';
   
-  // High marketability: classics, famous authors
-  const highDemandKeywords = ['república', 'contrato social', 'platão', 'rousseau', 'fromm'];
-  if (highDemandKeywords.some(keyword => titleLower.includes(keyword) || authorLower.includes(keyword))) {
+  // High marketability: Fromm (boa saída em filosofia)
+  if (titleLower.includes('anatomia') && authorLower.includes('fromm')) {
     return 'alta';
   }
   
-  // Low marketability: very specialized academic books
-  const lowDemandKeywords = ['epistemologia', 'teológicas'];
-  if (lowDemandKeywords.some(keyword => titleLower.includes(keyword))) {
+  // Low marketability: domain público, giro lento, muito específico
+  const lowDemandKeywords = ['pensadores', 'epistemologia', 'teológicas', 'paisagens'];
+  const lowDemandContent = ['more', 'campanella']; // domínio público
+  if (lowDemandKeywords.some(keyword => titleLower.includes(keyword)) ||
+      lowDemandContent.some(content => titleLower.includes(content) || authorLower.includes(content))) {
     return 'baixa';
   }
   
-  // Medium marketability for everything else
-  return 'media';
+  // Medium marketability: clássicos com giro razoável
+  const mediumDemandKeywords = ['república', 'contrato social', 'bioética'];
+  const mediumDemandAuthors = ['platão', 'rousseau'];
+  if (mediumDemandKeywords.some(keyword => titleLower.includes(keyword)) ||
+      mediumDemandAuthors.some(author => authorLower.includes(author))) {
+    return 'media';
+  }
+  
+  // Default to baixa for conservative pricing
+  return 'baixa';
 }
 
 function calculateEstimatedSaleValue(averagePrice: number, marketability: 'alta' | 'media' | 'baixa'): number {

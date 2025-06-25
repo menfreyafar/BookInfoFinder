@@ -19,8 +19,13 @@ interface TradeCalculationResult {
 export function calculateTradeValue(input: TradeCalculationInput): TradeCalculationResult {
   const { estimatedSaleValue, publishYear, isCompleteSeries = false, condition } = input;
   
-  // 1. Valor base: 20%
-  let basePercentage = 20;
+  // 1. Determinar percentual baseado no valor estimado e demanda
+  let basePercentage = 20; // Padrão para a maioria dos livros
+  
+  // Anatomia da Destrutividade Humana - boa saída em filosofia
+  if (estimatedSaleValue >= 35) {
+    basePercentage = 30;
+  }
   
   // 2. Progressão por valor (para valores acima de R$ 30, +10% para cada R$ 10 excedentes)
   let valueBonus = 0;
