@@ -839,12 +839,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.fontSize(16).text('Etiquetas/Marca-páginas dos Livros', { align: 'center' });
         doc.moveDown(1);
         
-        // Bookmark dimensions (horizontal layout like model)
-        const bookmarkWidth = 200;  // Width of bookmark (horizontal)
-        const bookmarkHeight = 140; // Height of bookmark (horizontal)
-        const margin = 10;
-        const cols = 3; // 3 bookmarks per row (horizontal)
-        const rows = 6; // 6 rows per page
+        // Bookmark dimensions - exactly like user's model
+        const bookmarkWidth = 120;  // Width exactly like model
+        const bookmarkHeight = 180; // Height exactly like model
+        const margin = 5;
+        const cols = 6; // 6 bookmarks per row exactly like model
+        const rows = 4; // 4 rows per page
         
         let currentX = margin;
         let currentY = doc.y;
@@ -868,61 +868,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Draw bookmark border
           doc.rect(x, y, bookmarkWidth, bookmarkHeight).stroke();
           
-          // Price at the top - exactly like the model
+          // Price at the top - exactly like user's model
           const finalPrice = book.used_price || book.new_price || 0;
           if (finalPrice > 0) {
-            doc.fontSize(14).font('Helvetica-Bold')
-              .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 8, { 
+            doc.fontSize(10).font('Helvetica-Bold')
+              .text(`R$ ${finalPrice.toFixed(2)}`, x + 5, y + 5, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
           }
           
-          // Book title (bold, prominent) - position like model
-          doc.fontSize(12).font('Helvetica-Bold')
-            .text(book.title.toUpperCase(), x + 5, y + 28, { 
+          // Book title (bold, uppercase) - exactly like model
+          doc.fontSize(8).font('Helvetica-Bold')
+            .text(book.title.toUpperCase(), x + 5, y + 18, { 
               width: bookmarkWidth - 10, 
               align: 'center'
             });
           
-          // Author (centered below title) - closer spacing
-          doc.fontSize(9).font('Helvetica')
-            .text(book.author, x + 5, y + 45, { 
+          // Author (centered below title) - exactly like model spacing
+          doc.fontSize(7).font('Helvetica')
+            .text(book.author, x + 5, y + 30, { 
               width: bookmarkWidth - 10, 
               align: 'center'
             });
           
-          // Sales process info - smaller and positioned like model
-          doc.fontSize(8).font('Helvetica')
-            .text('Processo de vendas', x + 5, y + 60, { 
+          // Sales process info - exactly like model
+          doc.fontSize(6).font('Helvetica')
+            .text('Processo de vendas', x + 5, y + 42, { 
               width: bookmarkWidth - 10, 
-              align: 'center'
+              align: 'left'
             })
-            .text('em cinco etapas', x + 5, y + 70, { 
+            .text('em cinco etapas', x + 5, y + 50, { 
               width: bookmarkWidth - 10, 
-              align: 'center'
+              align: 'left'
             });
           
-          // Synopsis (justified text) - main content area like model
+          // Synopsis (justified text) - exactly like model format
           if (book.synopsis) {
             let synopsis = book.synopsis;
-            // Limit to fit the space properly horizontally
-            if (synopsis.length > 350) {
-              synopsis = synopsis.substring(0, 350) + '...';
+            // Limit to fit exactly like the model
+            if (synopsis.length > 500) {
+              synopsis = synopsis.substring(0, 500) + '...';
             }
             
-            doc.fontSize(7).font('Helvetica')
-              .text(synopsis, x + 5, y + 85, { 
+            doc.fontSize(5.5).font('Helvetica')
+              .text(synopsis, x + 5, y + 58, { 
                 width: bookmarkWidth - 10, 
                 align: 'justify',
-                lineGap: 0.5
+                lineGap: 0.3
               });
           }
           
-          // Estante Virtual indicator - positioned like model
+          // Estante Virtual indicator - exactly like model position
           if (book.sent_to_estante_virtual) {
-            doc.fontSize(8).font('Helvetica')
-              .text('Ø=Üñ Disponível Online', x + 5, y + 115, { 
+            doc.fontSize(6).font('Helvetica')
+              .text('Ø=Üñ Disponível Online', x + 5, y + 150, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
@@ -937,22 +937,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
           }
           
-          // Edition and condition info - penultimate line like model
+          // Edition and condition info - exactly like model
           let infoText = '';
           if (book.edition) infoText += book.edition;
           if (book.condition) infoText += (infoText ? ' • ' : '') + book.condition;
           if (infoText) {
-            doc.fontSize(8).font('Helvetica')
-              .text(infoText, x + 5, y + 125, { 
+            doc.fontSize(6).font('Helvetica')
+              .text(infoText, x + 5, y + 162, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });
           }
           
-          // Unique code at bottom - last line like model
+          // Unique code at bottom - exactly like model
           if (book.unique_code) {
-            doc.fontSize(8).font('Helvetica')
-              .text(book.unique_code, x + 5, y + 135, { 
+            doc.fontSize(6).font('Helvetica')
+              .text(book.unique_code, x + 5, y + 172, { 
                 width: bookmarkWidth - 10, 
                 align: 'center'
               });

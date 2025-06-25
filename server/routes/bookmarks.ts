@@ -30,10 +30,10 @@ export async function generateBookBookmark(req: Request, res: Response) {
     const storeName = settingsMap.store_name || 'Luar Sebo e Livraria';
     const storeSubtitle = settingsMap.brand_subtitle || '';
 
-    // Create PDF with single bookmark - horizontal layout like model
+    // Create PDF with single bookmark - exactly like user's model
     const doc = new PDFDocument({ 
-      margin: 30,
-      size: [200, 140] // Horizontal bookmark size in points (width x height)
+      margin: 20,
+      size: [120, 180] // Exact size from user's model
     });
     
     res.setHeader('Content-Type', 'application/pdf');
@@ -41,83 +41,83 @@ export async function generateBookBookmark(req: Request, res: Response) {
     
     doc.pipe(res);
 
-    // Price at the top - exactly like the model
+    // Price at the top - exactly like user's model
     const finalPrice = book.used_price || book.new_price || 0;
     if (finalPrice > 0) {
-      doc.fontSize(14).font('Helvetica-Bold')
-        .text(`R$ ${finalPrice.toFixed(2)}`, 5, 8, { 
-          width: 190, 
+      doc.fontSize(10).font('Helvetica-Bold')
+        .text(`R$ ${finalPrice.toFixed(2)}`, 5, 5, { 
+          width: 110, 
           align: 'center'
         });
     }
     
-    // Book title (bold, prominent) - position like model
-    doc.fontSize(12).font('Helvetica-Bold')
-      .text(book.title.toUpperCase(), 5, 28, { 
-        width: 190, 
+    // Book title (bold, uppercase) - exactly like model
+    doc.fontSize(8).font('Helvetica-Bold')
+      .text(book.title.toUpperCase(), 5, 18, { 
+        width: 110, 
         align: 'center'
       });
     
-    // Author (centered below title) - closer spacing
-    doc.fontSize(9).font('Helvetica')
-      .text(book.author, 5, 45, { 
-        width: 190, 
+    // Author (centered below title) - exactly like model spacing
+    doc.fontSize(7).font('Helvetica')
+      .text(book.author, 5, 30, { 
+        width: 110, 
         align: 'center'
       });
     
-    // Sales process info - smaller and positioned like model
-    doc.fontSize(8).font('Helvetica')
-      .text('Processo de vendas', 5, 60, { 
-        width: 190, 
-        align: 'center'
+    // Sales process info - exactly like model
+    doc.fontSize(6).font('Helvetica')
+      .text('Processo de vendas', 5, 42, { 
+        width: 110, 
+        align: 'left'
       })
-      .text('em cinco etapas', 5, 70, { 
-        width: 190, 
-        align: 'center'
+      .text('em cinco etapas', 5, 50, { 
+        width: 110, 
+        align: 'left'
       });
     
-    // Synopsis (justified text) - main content area like model
+    // Synopsis (justified text) - exactly like model format
     if (book.synopsis) {
       let synopsis = book.synopsis;
-      // Limit to fit the space properly horizontally
-      if (synopsis.length > 350) {
-        synopsis = synopsis.substring(0, 350) + '...';
+      // Limit to fit exactly like the model
+      if (synopsis.length > 500) {
+        synopsis = synopsis.substring(0, 500) + '...';
       }
       
-      doc.fontSize(7).font('Helvetica')
-        .text(synopsis, 5, 85, { 
-          width: 190, 
+      doc.fontSize(5.5).font('Helvetica')
+        .text(synopsis, 5, 58, { 
+          width: 110, 
           align: 'justify',
-          lineGap: 0.5
+          lineGap: 0.3
         });
     }
     
-    // Estante Virtual indicator - positioned like model
+    // Estante Virtual indicator - exactly like model position
     if (book.sent_to_estante_virtual) {
-      doc.fontSize(8).font('Helvetica')
-        .text('Ø=Üñ Disponível Online', 5, 115, { 
-          width: 190, 
+      doc.fontSize(6).font('Helvetica')
+        .text('Ø=Üñ Disponível Online', 5, 150, { 
+          width: 110, 
           align: 'center'
         });
     }
     
-    // Edition and condition info - penultimate line like model
+    // Edition and condition info - exactly like model
     let infoText = '';
     if (book.edition) infoText += book.edition;
     if (book.condition) infoText += (infoText ? ' • ' : '') + book.condition;
     if (infoText) {
-      doc.fontSize(8).font('Helvetica')
-        .text(infoText, 5, 125, { 
-          width: 190, 
+      doc.fontSize(6).font('Helvetica')
+        .text(infoText, 5, 162, { 
+          width: 110, 
           align: 'center'
         });
     }
     
-    // Unique code at bottom - last line like model
+    // Unique code at bottom - exactly like model
     if (book.unique_code) {
-      doc.fontSize(8).font('Helvetica')
-        .text(book.unique_code, 5, 135, { 
-          width: 190, 
+      doc.fontSize(6).font('Helvetica')
+        .text(book.unique_code, 5, 172, { 
+          width: 110, 
           align: 'center'
         });
     }

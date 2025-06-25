@@ -26,10 +26,11 @@ Sistema completo de gestão para sebo e livraria com funcionalidades de:
 - ✅ Sistema de gestão de livraria totalmente operacional
 - ✅ Integração GitHub configurada (repositório BookInfoFinder)
 - ✅ Hot reload e desenvolvimento ativo funcionando
-- ✅ **Modelo de etiquetas/marca-páginas atualizado conforme design fornecido**
-- ✅ **Layout horizontal com preço em destaque, título em maiúsculas, e símbolo especial**
-- ✅ **Dimensões ajustadas: 200x140pt (formato paisagem) com fontes maiores**
-- ✅ **Disposição: 3 etiquetas por linha em formato horizontal**
+- ✅ **Modelo de etiquetas/marca-páginas replicado EXATAMENTE conforme design fornecido**
+- ✅ **Layout vertical compacto com preço em destaque, título em maiúsculas**
+- ✅ **Dimensões exatas: 120x180pt (formato vertical) com fontes precisas**
+- ✅ **Disposição: 6 etiquetas por linha conforme modelo original**
+- ✅ **Posicionamento e espaçamento idênticos ao arquivo fornecido**
 
 ## Recent Changes
 ### 2025-06-24 - Sistema de Guarda e Etiquetas Implementado
