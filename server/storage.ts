@@ -601,12 +601,12 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(sales)
       .where(and(
-        eq(sales.createdAt, today),
+        gte(sales.createdAt, today),
         lt(sales.createdAt, tomorrow)
       ));
     
     const dailySales = dailySalesResult.reduce((sum, sale) => 
-      sum + parseFloat(sale.totalAmount || "0"), 0
+      sum + (typeof sale.totalAmount === 'number' ? sale.totalAmount : parseFloat(String(sale.totalAmount))), 0
     );
 
     const lowStockResult = await db
@@ -688,8 +688,13 @@ export class DatabaseStorage implements IStorage {
     return missingBook;
   }
 
-  async deleteMissingBook(id: number) {
-    await db.delete(missingBooks).where(eq(missingBooks.id, id));
+  async deleteMissingBook(id: number): Promise<boolean> {
+    const result = await db.delete(missingBooks).where(eq(missingBooks.id, id));
+    return result.changes > 0;
+  }
+
+  async getMissingBooks(): Promise<MissingBook[]> {
+    return await db.select().from(missingBooks).orderBy(desc(missingBooks.createdAt));
   }
 
   async importClassicBooks() {
@@ -698,49 +703,7 @@ export class DatabaseStorage implements IStorage {
     return existingBooks.length;
   }
 
-  async getDashboardStats() {
-    const [totalBooksResult] = await db.select({ count: sql<number>`count(*)` }).from(books);
-    const totalBooks = totalBooksResult.count;
 
-    // Get today's sales - use timestamp in milliseconds for SQLite
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    const todayTimestamp = today.getTime();
-    const tomorrowTimestamp = tomorrow.getTime();
-
-    const [dailySalesResult] = await db
-      .select({ sum: sql<number>`coalesce(sum(${sales.totalAmount}), 0)` })
-      .from(sales)
-      .where(and(
-        sql`${sales.createdAt} >= ${todayTimestamp}`,
-        sql`${sales.createdAt} < ${tomorrowTimestamp}`
-      ));
-    const dailySales = dailySalesResult.sum;
-
-    // Get low stock count (threshold of 5)
-    const lowStockBooks = await db
-      .select()
-      .from(inventory)
-      .where(lt(inventory.quantity, 5));
-    const lowStockCount = lowStockBooks.length;
-
-    // Get books sent to Estante Virtual
-    const [estanteVirtualResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(inventory)
-      .where(eq(inventory.sentToEstanteVirtual, 1));
-    const estanteVirtualCount = estanteVirtualResult.count;
-
-    return {
-      totalBooks,
-      dailySales,
-      lowStockCount,
-      estanteVirtualCount
-    };
-  }
 
   // Exchanges
   async createExchange(exchange: InsertExchange, items: InsertExchangeItem[], givenBooks: InsertExchangeGivenBook[]): Promise<ExchangeWithItems> {
@@ -1082,6 +1045,93 @@ export class DatabaseStorage implements IStorage {
       ...customer,
       sales: customerSales
     };
+  }
+
+  // Book transfer methods
+  async createBookTransfer(transfer: InsertBookTransfer): Promise<BookTransfer> {
+    const [newTransfer] = await db.insert(bookTransfers).values({
+      ...transfer,
+      transferredAt: new Date()
+    }).returning();
+    return newTransfer;
+  }
+
+  async getBookTransfers(bookId?: number): Promise<BookTransferWithDetails[]> {
+    let query = db.select({
+      transfer: bookTransfers,
+      book: books,
+      fromShelf: shelves,
+      toShelf: shelves
+    })
+    .from(bookTransfers)
+    .leftJoin(books, eq(bookTransfers.bookId, books.id))
+    .leftJoin(shelves, eq(bookTransfers.fromShelfId, shelves.id))
+    .leftJoin(shelves, eq(bookTransfers.toShelfId, shelves.id))
+    .orderBy(desc(bookTransfers.transferredAt));
+
+    if (bookId) {
+      query = query.where(eq(bookTransfers.bookId, bookId)) as any;
+    }
+
+    const results = await query;
+    return results.map((result: any) => ({
+      ...result.transfer,
+      book: result.book,
+      fromShelf: result.fromShelf,
+      toShelf: result.toShelf
+    }));
+  }
+
+  async getShelfHistory(shelfId: number): Promise<BookTransferWithDetails[]> {
+    const results = await db.select({
+      transfer: bookTransfers,
+      book: books,
+      fromShelf: shelves,
+      toShelf: shelves
+    })
+    .from(bookTransfers)
+    .leftJoin(books, eq(bookTransfers.bookId, books.id))
+    .leftJoin(shelves, eq(bookTransfers.fromShelfId, shelves.id))
+    .leftJoin(shelves, eq(bookTransfers.toShelfId, shelves.id))
+    .where(or(
+      eq(bookTransfers.fromShelfId, shelfId),
+      eq(bookTransfers.toShelfId, shelfId)
+    ))
+    .orderBy(desc(bookTransfers.transferredAt));
+
+    return results.map((result: any) => ({
+      ...result.transfer,
+      book: result.book,
+      fromShelf: result.fromShelf,
+      toShelf: result.toShelf
+    }));
+  }
+
+  async updateBookShelf(bookId: number, newShelfId: number, reason?: string, transferredBy?: string): Promise<BookTransfer> {
+    // Get current book location
+    const book = await this.getBook(bookId);
+    if (!book) {
+      throw new Error("Livro não encontrado");
+    }
+
+    const inventoryRecord = await db.select().from(inventory).where(eq(inventory.bookId, bookId));
+    const currentShelfId = inventoryRecord[0]?.shelfId || null;
+
+    // Update book location
+    await db.update(inventory)
+      .set({ shelfId: newShelfId, updatedAt: new Date() })
+      .where(eq(inventory.bookId, bookId));
+
+    // Create transfer record
+    const transfer = await this.createBookTransfer({
+      bookId,
+      fromShelfId: currentShelfId,
+      toShelfId: newShelfId,
+      reason: reason || 'Transferência manual',
+      transferredBy: transferredBy || 'Sistema'
+    });
+
+    return transfer;
   }
 }
 

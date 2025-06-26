@@ -19,6 +19,7 @@ import ShelvesManagement from "@/pages/shelves-management";
 import Settings from "@/pages/settings";
 import CustomerRequestsPage from "@/pages/CustomerRequestsPage";
 import CustomersPage from "@/pages/customers";
+import SalesHistory from "@/pages/sales-history";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -38,6 +39,7 @@ function Router() {
           <Route path="/missing-books" component={MissingBooks} />
           <Route path="/radar" component={CustomerRequestsPage} />
           <Route path="/customers" component={CustomersPage} />
+          <Route path="/sales-history" component={SalesHistory} />
           <Route path="/shelves" component={ShelvesManagement} />
           <Route path="/storage" component={Storage} />
           <Route path="/export" component={Export} />

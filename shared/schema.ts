@@ -32,6 +32,7 @@ export const inventory = sqliteTable("inventory", {
   bookId: integer("book_id").references(() => books.id).notNull(),
   quantity: integer("quantity").notNull().default(0),
   location: text("location"),
+  shelfId: integer("shelf_id").references(() => shelves.id),
   status: text("status").notNull().default("available"), // available, reserved, sold
   sentToEstanteVirtual: integer("sent_to_estante_virtual", { mode: 'boolean' }).default(false),
   estanteVirtualId: text("estante_virtual_id"), // ID do livro na Estante Virtual

@@ -65,7 +65,7 @@ export default function POSModal({ open, onClose }: POSModalProps) {
 
   const addToCart = (book: BookWithInventory) => {
     const existingItem = cart.find(item => item.id === book.id);
-    const price = parseFloat(book.usedPrice || book.newPrice || "0");
+    const price = parseFloat(String(book.usedPrice || book.newPrice || "0"));
     
     if (existingItem) {
       setCart(cart.map(item => 

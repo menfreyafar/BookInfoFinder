@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { searchBookByISBN, searchBrazilianBookPrices } from "./services/bookApi";
@@ -10,7 +10,10 @@ import { estanteVirtualService } from "./services/estanteVirtual";
 import { uploadTemplate, generateCustomPDF, getTemplateInfo, saveCustomLayout, generateCustomLayoutPDF } from "./routes/templates";
 import { orderImporterService } from "./services/orderImporter";
 import { dailyExportScheduler } from "./services/scheduler";
-import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema, insertExchangeSchema, insertExchangeItemSchema, insertExchangeGivenBookSchema, insertPreCatalogBookSchema } from "@shared/schema";
+import { insertBookSchema, insertInventorySchema, insertSaleSchema, insertSaleItemSchema, insertSettingsSchema, insertExchangeSchema, insertExchangeItemSchema, insertExchangeGivenBookSchema, insertPreCatalogBookSchema, insertCustomerRequestSchema, insertShelfSchema, insertCustomerSchema } from "@shared/schema";
+import { db } from "./db";
+import { books, inventory, shelves, customerRequests, customers } from "@shared/schema";
+import { eq, like, and, or, desc, asc } from "drizzle-orm";
 import PDFDocument from 'pdfkit';
 import { z } from "zod";
 import multer from "multer";
@@ -461,22 +464,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
         books = books.filter(book => book.category === category);
       }
 
-      // Generate PDF content (simplified for now - would need PDF library)
-      const catalogData = books.map(book => ({
-        title: book.title,
-        author: book.author,
-        price: book.usedPrice || book.newPrice || "0",
-        condition: book.condition || "Usado",
-        category: book.category || "Não especificada",
-        shelf: book.shelf || "Não especificada"
-      }));
-
-      // For now, return JSON data - in production would generate actual PDF
-      res.json({
-        message: "Funcionalidade de PDF será implementada com biblioteca específica",
-        data: catalogData,
-        totalItems: catalogData.length
+      // Create PDF
+      const doc = new PDFDocument({ 
+        margin: 40,
+        size: 'A4'
       });
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="catalogo-${productType || 'todos'}-${new Date().toISOString().split('T')[0]}.pdf"`);
+      
+      doc.pipe(res);
+
+      // Header
+      doc.fontSize(20).text('Catálogo de Produtos', { align: 'center' });
+      doc.fontSize(12).text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
+      doc.moveDown(2);
+
+      // Products grid (2 columns)
+      const pageWidth = doc.page.width - 80; // 40 margin each side
+      const colWidth = pageWidth / 2 - 10; // 10px gap between columns
+      let currentY = doc.y;
+      let currentCol = 0;
+
+      books.forEach((book, index) => {
+        const x = currentCol === 0 ? 40 : 40 + colWidth + 20;
+        
+        // Check if we need a new page
+        if (currentY > doc.page.height - 200) {
+          doc.addPage();
+          currentY = 40;
+        }
+
+        doc.y = currentY;
+
+        // Product card background
+        doc.rect(x, currentY, colWidth, 150).stroke();
+        
+        // Product details
+        doc.fontSize(14).font('Helvetica-Bold').text(book.title, x + 10, currentY + 10, {
+          width: colWidth - 20,
+          ellipsis: true
+        });
+        
+        doc.fontSize(11).font('Helvetica').text(`Por: ${book.author}`, x + 10, currentY + 30, {
+          width: colWidth - 20,
+          ellipsis: true
+        });
+
+        // Price
+        const price = book.usedPrice || book.newPrice || 0;
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#dc2626')
+           .text(`R$ ${Number(price).toFixed(2)}`, x + 10, currentY + 50);
+
+        // Additional details
+        doc.fontSize(9).font('Helvetica').fillColor('#666666');
+        if (book.category) {
+          doc.text(`Categoria: ${book.category}`, x + 10, currentY + 75);
+        }
+        if (book.condition) {
+          doc.text(`Condição: ${book.condition}`, x + 10, currentY + 90);
+        }
+        if (book.isbn) {
+          doc.text(`ISBN: ${book.isbn}`, x + 10, currentY + 105);
+        }
+        if (book.shelf) {
+          doc.text(`Estante: ${book.shelf}`, x + 10, currentY + 120);
+        }
+
+        // Synopsis if available
+        if (book.synopsis) {
+          doc.fontSize(8).text(book.synopsis.substring(0, 100) + '...', x + 10, currentY + 135, {
+            width: colWidth - 20,
+            height: 10
+          });
+        }
+
+        // Reset color
+        doc.fillColor('#000000');
+
+        // Move to next position
+        currentCol = currentCol === 0 ? 1 : 0;
+        if (currentCol === 0) {
+          currentY += 170; // Move to next row
+        }
+      });
+
+      // Footer
+      doc.fontSize(8).fillColor('#999999').text(
+        `Total de produtos: ${books.length} | Luar Sebo - Sistema de Gestão`,
+        40,
+        doc.page.height - 30,
+        { align: 'center' }
+      );
+
+      doc.end();
     } catch (error) {
       console.error("Error generating catalog PDF:", error);
       res.status(500).json({ error: "Erro ao gerar catálogo PDF" });
@@ -1205,8 +1286,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (result.success && result.bookId) {
         // Mark book as sent to Estante Virtual
-        if (bookWithInventory.inventory) {
-          await storage.updateInventory(bookWithInventory.inventory.id, {
+        const inventoryRecord = bookWithInventory.inventory;
+        if (inventoryRecord) {
+          await storage.updateInventory(inventoryRecord.id, {
             sentToEstanteVirtual: true,
             estanteVirtualId: result.bookId
           });
