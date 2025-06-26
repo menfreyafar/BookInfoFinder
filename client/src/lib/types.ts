@@ -37,3 +37,32 @@ export interface SalesReport {
     revenue: number;
   }[];
 }
+
+export interface BookWithInventory {
+  id: number;
+  isbn: string;
+  title: string;
+  author: string;
+  category: string;
+  publisher: string;
+  publishedYear: number;
+  pages: number;
+  price: number;
+  condition: string;
+  uniqueCode: string;
+  isStored: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  inventory: {
+    id: number;
+    bookId: number;
+    quantity: number;
+    location: string | null;
+    status: string;
+    sentToEstanteVirtual: boolean | null;
+    estanteVirtualId: string | null;
+    lastSyncDate: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+}

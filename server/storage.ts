@@ -69,6 +69,7 @@ export interface IStorage {
     publisher?: string;
     isbn?: string;
   }): Promise<BookWithInventory[]>;
+  smartSearchBooks(query: string): Promise<BookWithInventory[]>;
   getAllBooks(): Promise<BookWithInventory[]>;
   
   // Inventory
@@ -224,6 +225,90 @@ export class DatabaseStorage implements IStorage {
       .from(books)
       .leftJoin(inventory, eq(books.id, inventory.bookId))
       .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+      .orderBy(asc(books.title));
+
+    return result.map(row => ({
+      ...row.books,
+      inventory: row.inventory
+    }));
+  }
+
+  async smartSearchBooks(query: string): Promise<BookWithInventory[]> {
+    const searchTerm = query.toLowerCase().trim();
+    
+    // Define smart search patterns for available fields
+    const nationalityPatterns = {
+      'brasileiro': ['brasil', 'brazil', 'brasileiro', 'brasileira'],
+      'inglês': ['england', 'english', 'reino unido', 'uk', 'great britain'],
+      'americano': ['usa', 'estados unidos', 'america', 'american'],
+      'francês': ['france', 'frança', 'french', 'francês'],
+      'alemão': ['germany', 'alemanha', 'german', 'deutsch'],
+      'italiano': ['italy', 'italia', 'italian'],
+      'espanhol': ['spain', 'espanha', 'spanish', 'español'],
+      'japonês': ['japan', 'japão', 'japanese'],
+      'russo': ['russia', 'rússia', 'russian']
+    };
+
+    const colorPatterns = {
+      'azul': ['azul', 'blue'],
+      'vermelho': ['vermelho', 'red'],
+      'verde': ['verde', 'green'],
+      'amarelo': ['amarelo', 'yellow'],
+      'preto': ['preto', 'black'],
+      'branco': ['branco', 'white'],
+      'cinza': ['cinza', 'gray', 'grey'],
+      'rosa': ['rosa', 'pink'],
+      'roxo': ['roxo', 'purple'],
+      'laranja': ['laranja', 'orange']
+    };
+
+    let whereConditions: any[] = [];
+    
+    // Basic text search across available fields
+    const basicSearch = or(
+      like(books.title, `%${query}%`),
+      like(books.author, `%${query}%`),
+      like(books.isbn, `%${query}%`),
+      like(books.category, `%${query}%`),
+      like(books.publisher, `%${query}%`)
+    );
+
+    whereConditions.push(basicSearch);
+
+    // Check for nationality patterns in author field
+    for (const [key, patterns] of Object.entries(nationalityPatterns)) {
+      if (patterns.some(pattern => searchTerm.includes(pattern))) {
+        whereConditions.push(
+          or(
+            like(books.author, `%${key}%`),
+            ...patterns.map(pattern => like(books.author, `%${pattern}%`))
+          )
+        );
+      }
+    }
+
+    // Check for color patterns in title and category
+    for (const [key, patterns] of Object.entries(colorPatterns)) {
+      if (patterns.some(pattern => searchTerm.includes(pattern))) {
+        const colorConditions = [
+          like(books.title, `%${key}%`),
+          like(books.category, `%${key}%`)
+        ];
+        
+        patterns.forEach(pattern => {
+          colorConditions.push(like(books.title, `%${pattern}%`));
+          colorConditions.push(like(books.category, `%${pattern}%`));
+        });
+        
+        whereConditions.push(or(...colorConditions));
+      }
+    }
+
+    const result = await db
+      .select()
+      .from(books)
+      .leftJoin(inventory, eq(books.id, inventory.bookId))
+      .where(or(...whereConditions))
       .orderBy(asc(books.title));
 
     return result.map(row => ({

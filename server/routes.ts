@@ -62,6 +62,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/books/smart-search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: "Parâmetro de busca é obrigatório" });
+      }
+      
+      const books = await storage.smartSearchBooks(q);
+      res.json(books);
+    } catch (error) {
+      console.error("Error in smart search:", error);
+      res.status(500).json({ error: "Erro na busca inteligente" });
+    }
+  });
+
   app.get("/api/books/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

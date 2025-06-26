@@ -135,6 +135,9 @@ function QuickAction({ icon, title, bgColor, textColor, onClick }: QuickActionPr
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [isbnSearch, setIsbnSearch] = useState("");
+  const [smartSearch, setSmartSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<BookWithInventory[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
@@ -157,6 +160,39 @@ export default function Dashboard() {
     if (isbnSearch.trim()) {
       setLocation(`/isbn-search?isbn=${encodeURIComponent(isbnSearch)}`);
     }
+  };
+
+  const handleSmartSearch = async () => {
+    if (!smartSearch.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/books/smart-search?q=${encodeURIComponent(smartSearch)}`);
+      if (response.ok) {
+        const results = await response.json();
+        setSearchResults(results);
+        setShowSearchResults(true);
+      } else {
+        // Fall back to regular search
+        const fallbackResponse = await fetch(`/api/books/search?q=${encodeURIComponent(smartSearch)}`);
+        if (fallbackResponse.ok) {
+          const results = await fallbackResponse.json();
+          setSearchResults(results);
+          setShowSearchResults(true);
+        }
+      }
+    } catch (error) {
+      console.error("Erro na busca:", error);
+    }
+  };
+
+  const clearSearch = () => {
+    setSmartSearch("");
+    setSearchResults([]);
+    setShowSearchResults(false);
   };
 
   const formatCurrency = (value: number) => {
@@ -187,6 +223,92 @@ export default function Dashboard() {
       />
       
       <main className="p-6">
+        {/* Smart Search Bar */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center space-x-2">
+                <Search className="text-gray-400 w-5 h-5" />
+                <Input
+                  placeholder="Busca inteligente: título, autor, nacionalidade, cor da capa, idioma... Ex: 'azul', 'brasileiro', 'inglês'"
+                  value={smartSearch}
+                  onChange={(e) => setSmartSearch(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSmartSearch()}
+                  className="flex-1"
+                />
+                <Button onClick={handleSmartSearch} disabled={!smartSearch.trim()}>
+                  Buscar
+                </Button>
+                {showSearchResults && (
+                  <Button variant="outline" onClick={clearSearch}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                <p><strong>Exemplos de busca:</strong></p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("azul")}>azul</Badge>
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("brasileiro")}>brasileiro</Badge>
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("inglês")}>inglês</Badge>
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("romance")}>romance</Badge>
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("vermelho")}>vermelho</Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Search Results */}
+        {showSearchResults && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="w-5 h-5" />
+                Resultados da Busca ({searchResults.length} livros encontrados)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {searchResults.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  Nenhum livro encontrado para "{smartSearch}"
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {searchResults.slice(0, 9).map((book) => (
+                    <div key={book.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{book.title}</h3>
+                      <p className="text-gray-600 text-sm mb-2">{book.author}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-green-600 font-medium">
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                          }).format(book.price)}
+                        </span>
+                        {book.inventory && getStatusBadge(book.inventory.status)}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {book.category} • {book.publisher}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {searchResults.length > 9 && (
+                <div className="text-center mt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setLocation(`/books?search=${encodeURIComponent(smartSearch)}`)}
+                  >
+                    Ver todos os {searchResults.length} resultados
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
