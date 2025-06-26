@@ -54,6 +54,9 @@ O sistema agora suporta:
 - 2025-06-25: Criadas rotas API para gerenciar solicitações de clientes
 - 2025-06-25: Nova interface web para cadastro e gestão de pedidos
 - 2025-06-25: Sistema de notificação quando livros procurados entram no estoque
+- 2025-06-26: Implementado campo de busca inteligente no dashboard
+- 2025-06-26: Busca suporta critérios múltiplos: título, autor, nacionalidade, cores, idiomas
+- 2025-06-26: Adicionada busca por preços com filtros de valores (até X reais, acima de Y reais)
 
 ## Próximos Passos
 - Sistema está pronto para uso e desenvolvimento adicional

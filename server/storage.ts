@@ -264,43 +264,80 @@ export class DatabaseStorage implements IStorage {
 
     let whereConditions: any[] = [];
     
-    // Basic text search across available fields
-    const basicSearch = or(
-      like(books.title, `%${query}%`),
-      like(books.author, `%${query}%`),
-      like(books.isbn, `%${query}%`),
-      like(books.category, `%${query}%`),
-      like(books.publisher, `%${query}%`)
-    );
+    // Check for price patterns
+    const priceRegex = /(?:até|máximo|max|menor que|<|abaixo de)\s*(?:r\$?\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:reais?)?/i;
+    const minPriceRegex = /(?:acima de|maior que|>|mínimo|min|a partir de)\s*(?:r\$?\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:reais?)?/i;
+    const exactPriceRegex = /(?:r\$?\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:reais?)/i;
+    
+    const maxPriceMatch = searchTerm.match(priceRegex);
+    const minPriceMatch = searchTerm.match(minPriceRegex);
+    const exactPriceMatch = searchTerm.match(exactPriceRegex);
 
-    whereConditions.push(basicSearch);
+    let hasPriceFilter = false;
 
-    // Check for nationality patterns in author field
-    for (const [key, patterns] of Object.entries(nationalityPatterns)) {
-      if (patterns.some(pattern => searchTerm.includes(pattern))) {
-        whereConditions.push(
-          or(
-            like(books.author, `%${key}%`),
-            ...patterns.map(pattern => like(books.author, `%${pattern}%`))
-          )
-        );
-      }
+    if (maxPriceMatch) {
+      const maxPrice = parseFloat(maxPriceMatch[1].replace(',', '.'));
+      whereConditions.push(lte(books.price, maxPrice));
+      hasPriceFilter = true;
     }
 
-    // Check for color patterns in title and category
-    for (const [key, patterns] of Object.entries(colorPatterns)) {
-      if (patterns.some(pattern => searchTerm.includes(pattern))) {
-        const colorConditions = [
-          like(books.title, `%${key}%`),
-          like(books.category, `%${key}%`)
-        ];
-        
-        patterns.forEach(pattern => {
-          colorConditions.push(like(books.title, `%${pattern}%`));
-          colorConditions.push(like(books.category, `%${pattern}%`));
-        });
-        
-        whereConditions.push(or(...colorConditions));
+    if (minPriceMatch) {
+      const minPrice = parseFloat(minPriceMatch[1].replace(',', '.'));
+      whereConditions.push(gte(books.price, minPrice));
+      hasPriceFilter = true;
+    }
+
+    if (exactPriceMatch && !maxPriceMatch && !minPriceMatch) {
+      const exactPrice = parseFloat(exactPriceMatch[1].replace(',', '.'));
+      // Allow for small price variance (±0.50)
+      whereConditions.push(
+        and(
+          gte(books.price, exactPrice - 0.5),
+          lte(books.price, exactPrice + 0.5)
+        )
+      );
+      hasPriceFilter = true;
+    }
+
+    // If no price filter was applied, use basic text search
+    if (!hasPriceFilter) {
+      const basicSearch = or(
+        like(books.title, `%${query}%`),
+        like(books.author, `%${query}%`),
+        like(books.isbn, `%${query}%`),
+        like(books.category, `%${query}%`),
+        like(books.publisher, `%${query}%`)
+      );
+
+      whereConditions.push(basicSearch);
+
+      // Check for nationality patterns in author field
+      for (const [key, patterns] of Object.entries(nationalityPatterns)) {
+        if (patterns.some(pattern => searchTerm.includes(pattern))) {
+          whereConditions.push(
+            or(
+              like(books.author, `%${key}%`),
+              ...patterns.map(pattern => like(books.author, `%${pattern}%`))
+            )
+          );
+        }
+      }
+
+      // Check for color patterns in title and category
+      for (const [key, patterns] of Object.entries(colorPatterns)) {
+        if (patterns.some(pattern => searchTerm.includes(pattern))) {
+          const colorConditions = [
+            like(books.title, `%${key}%`),
+            like(books.category, `%${key}%`)
+          ];
+          
+          patterns.forEach(pattern => {
+            colorConditions.push(like(books.title, `%${pattern}%`));
+            colorConditions.push(like(books.category, `%${pattern}%`));
+          });
+          
+          whereConditions.push(or(...colorConditions));
+        }
       }
     }
 
@@ -308,8 +345,8 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(books)
       .leftJoin(inventory, eq(books.id, inventory.bookId))
-      .where(or(...whereConditions))
-      .orderBy(asc(books.title));
+      .where(whereConditions.length > 0 ? (whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions)) : undefined)
+      .orderBy(asc(books.price));
 
     return result.map(row => ({
       ...row.books,

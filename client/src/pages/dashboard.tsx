@@ -252,8 +252,10 @@ export default function Dashboard() {
                   <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("azul")}>azul</Badge>
                   <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("brasileiro")}>brasileiro</Badge>
                   <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("inglês")}>inglês</Badge>
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("até 10 reais")}>até 10 reais</Badge>
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("até 20 reais")}>até 20 reais</Badge>
+                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("acima de 50 reais")}>acima de 50 reais</Badge>
                   <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("romance")}>romance</Badge>
-                  <Badge variant="secondary" className="cursor-pointer" onClick={() => setSmartSearch("vermelho")}>vermelho</Badge>
                 </div>
               </div>
             </div>
