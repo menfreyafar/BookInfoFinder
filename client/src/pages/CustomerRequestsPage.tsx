@@ -205,30 +205,106 @@ export default function CustomerRequestsPage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="title"
+                  name="requestType"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título do Livro</FormLabel>
+                    <FormItem className="space-y-3">
+                      <FormLabel>Tipo de Busca</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: Dom Casmurro" {...field} />
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-2"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="specific" id="specific" />
+                            <label htmlFor="specific" className="flex items-center cursor-pointer">
+                              <BookOpen className="mr-2 h-4 w-4" />
+                              Livro específico (título + autor)
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="author" id="author" />
+                            <label htmlFor="author" className="flex items-center cursor-pointer">
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              Qualquer livro do autor
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="category" id="category" />
+                            <label htmlFor="category" className="flex items-center cursor-pointer">
+                              <Tag className="mr-2 h-4 w-4" />
+                              Categoria/Temática
+                            </label>
+                          </div>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="author"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Autor</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Machado de Assis" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
+                {form.watch("requestType") === "specific" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Título do Livro</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Dom Casmurro" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="author"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Autor</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Machado de Assis" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+                {form.watch("requestType") === "author" && (
+                  <FormField
+                    control={form.control}
+                    name="author"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Autor</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Machado de Assis" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {form.watch("requestType") === "category" && (
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoria/Temática</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Literatura Brasileira, Ficção Científica" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="customerName"
@@ -329,8 +405,33 @@ export default function CustomerRequestsPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{request.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">por {request.author}</p>
+                    {request.requestType === "specific" && (
+                      <>
+                        <CardTitle className="text-lg flex items-center">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          {request.title}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">por {request.author}</p>
+                      </>
+                    )}
+                    {request.requestType === "author" && (
+                      <>
+                        <CardTitle className="text-lg flex items-center">
+                          <UserCheck className="mr-2 h-4 w-4" />
+                          Qualquer livro de {request.author}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">Busca por autor</p>
+                      </>
+                    )}
+                    {request.requestType === "category" && (
+                      <>
+                        <CardTitle className="text-lg flex items-center">
+                          <Tag className="mr-2 h-4 w-4" />
+                          {request.category}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">Busca por categoria/temática</p>
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     {getStatusBadge(request.status)}
