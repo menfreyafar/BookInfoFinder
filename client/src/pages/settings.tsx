@@ -103,10 +103,7 @@ export default function Settings() {
   const updateSettingsMutation = useMutation({
     mutationFn: async (settings: { key: string; value: string }[]) => {
       const promises = settings.map(setting =>
-        apiRequest('/api/settings', {
-          method: 'POST',
-          data: setting
-        })
+        apiRequest('POST', '/api/settings', setting)
       );
       
       await Promise.all(promises);
@@ -154,8 +151,9 @@ export default function Settings() {
     setConnectionResult(null);
     
     try {
-      const response = await apiRequest('/api/estante-virtual/test-connection', {
-        method: 'POST'
+      const response = await fetch('/api/estante-virtual/test-connection', {
+        method: 'POST',
+        credentials: 'include'
       });
       const result = await response.json();
       setConnectionResult(result);
