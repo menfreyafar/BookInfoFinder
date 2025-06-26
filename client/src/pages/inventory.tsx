@@ -42,6 +42,21 @@ interface InventoryUpdateFormProps {
 }
 
 function InventoryUpdateForm({ book, onClose }: InventoryUpdateFormProps) {
+  // Book data
+  const [title, setTitle] = useState(book.title || "");
+  const [author, setAuthor] = useState(book.author || "");
+  const [publisher, setPublisher] = useState(book.publisher || "");
+  const [publishYear, setPublishYear] = useState(book.publishYear?.toString() || "");
+  const [category, setCategory] = useState(book.category || "");
+  const [usedPrice, setUsedPrice] = useState(book.usedPrice?.toString() || "");
+  const [newPrice, setNewPrice] = useState(book.newPrice?.toString() || "");
+  const [condition, setCondition] = useState(book.condition || "");
+  const [shelf, setShelf] = useState(book.shelf || "");
+  const [isbn, setIsbn] = useState(book.isbn || "");
+  const [synopsis, setSynopsis] = useState(book.synopsis || "");
+  const [coverImage, setCoverImage] = useState(book.coverImage || "");
+  
+  // Inventory data
   const [quantity, setQuantity] = useState(book.inventory?.quantity || 0);
   const [location, setLocation] = useState(book.inventory?.location || "");
   const [status, setStatus] = useState(book.inventory?.status || "available");
@@ -50,27 +65,98 @@ function InventoryUpdateForm({ book, onClose }: InventoryUpdateFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setCoverImage(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      if (!book.inventory?.id) {
-        throw new Error("Inventory ID not found");
+      // Update book data
+      const bookResponse = await fetch(`/api/books/${book.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: data.title,
+          author: data.author,
+          publisher: data.publisher,
+          publishYear: data.publishYear ? parseInt(data.publishYear) : null,
+          category: data.category,
+          usedPrice: data.usedPrice ? parseFloat(data.usedPrice) : null,
+          newPrice: data.newPrice ? parseFloat(data.newPrice) : null,
+          condition: data.condition,
+          shelf: data.shelf,
+          isbn: data.isbn,
+          synopsis: data.synopsis,
+          coverImage: data.coverImage
+        })
+      });
+
+      if (!bookResponse.ok) {
+        throw new Error("Erro ao atualizar livro");
       }
-      await apiRequest("PUT", `/api/inventory/${book.inventory.id}`, data);
+
+      // Update or create inventory
+      if (book.inventory?.id) {
+        const inventoryResponse = await fetch(`/api/inventory/${book.inventory.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            quantity: data.quantity,
+            location: data.location,
+            status: data.status,
+            sentToEstanteVirtual: data.sentToEstanteVirtual
+          })
+        });
+
+        if (!inventoryResponse.ok) {
+          throw new Error("Erro ao atualizar estoque");
+        }
+      } else {
+        const inventoryResponse = await fetch(`/api/inventory`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookId: book.id,
+            quantity: data.quantity,
+            location: data.location,
+            status: data.status,
+            sentToEstanteVirtual: data.sentToEstanteVirtual
+          })
+        });
+
+        if (!inventoryResponse.ok) {
+          throw new Error("Erro ao criar estoque");
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/books"] });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory/low-stock"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       toast({
-        title: "Estoque Atualizado",
-        description: "Informações do estoque atualizadas com sucesso",
+        title: "Livro Atualizado",
+        description: "Informações do livro e estoque atualizadas com sucesso",
       });
       onClose();
     },
     onError: (error) => {
       toast({
         title: "Erro",
-        description: "Erro ao atualizar estoque: " + error.message,
+        description: "Erro ao atualizar livro: " + error.message,
         variant: "destructive",
       });
     },
@@ -79,6 +165,18 @@ function InventoryUpdateForm({ book, onClose }: InventoryUpdateFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateMutation.mutate({
+      title,
+      author,
+      publisher,
+      publishYear,
+      category,
+      usedPrice,
+      newPrice,
+      condition,
+      shelf,
+      isbn,
+      synopsis,
+      coverImage,
       quantity,
       location,
       status,
@@ -87,54 +185,217 @@ function InventoryUpdateForm({ book, onClose }: InventoryUpdateFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto">
+      {/* Book Information Section */}
+      <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+        <h3 className="font-medium text-lg">Informações do Livro</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="title">Título</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="author">Autor</Label>
+            <Input
+              id="author"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="publisher">Editora</Label>
+            <Input
+              id="publisher"
+              value={publisher}
+              onChange={(e) => setPublisher(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="publishYear">Ano de Publicação</Label>
+            <Input
+              id="publishYear"
+              type="number"
+              value={publishYear}
+              onChange={(e) => setPublishYear(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="isbn">ISBN</Label>
+            <Input
+              id="isbn"
+              value={isbn}
+              onChange={(e) => setIsbn(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="category">Categoria</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Literatura">Literatura</SelectItem>
+                <SelectItem value="Ficção">Ficção</SelectItem>
+                <SelectItem value="Romance">Romance</SelectItem>
+                <SelectItem value="Suspense">Suspense</SelectItem>
+                <SelectItem value="Biografia">Biografia</SelectItem>
+                <SelectItem value="História">História</SelectItem>
+                <SelectItem value="Filosofia">Filosofia</SelectItem>
+                <SelectItem value="Autoajuda">Autoajuda</SelectItem>
+                <SelectItem value="Técnico">Técnico</SelectItem>
+                <SelectItem value="Infantil">Infantil</SelectItem>
+                <SelectItem value="Quadrinhos">Quadrinhos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="usedPrice">Preço Usado (R$)</Label>
+            <Input
+              id="usedPrice"
+              type="number"
+              step="0.01"
+              value={usedPrice}
+              onChange={(e) => setUsedPrice(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="newPrice">Preço Novo (R$)</Label>
+            <Input
+              id="newPrice"
+              type="number"
+              step="0.01"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="condition">Condição</Label>
+            <Select value={condition} onValueChange={setCondition}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a condição" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="novo">Novo</SelectItem>
+                <SelectItem value="seminovo">Seminovo</SelectItem>
+                <SelectItem value="usado">Usado</SelectItem>
+                <SelectItem value="danificado">Danificado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div>
-          <Label htmlFor="quantity">Quantidade</Label>
+          <Label htmlFor="shelf">Prateleira</Label>
           <Input
-            id="quantity"
-            type="number"
-            min="0"
-            value={quantity}
-            onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+            id="shelf"
+            value={shelf}
+            onChange={(e) => setShelf(e.target.value)}
+            placeholder="Ex: A1, B2, C3"
           />
         </div>
+
         <div>
-          <Label htmlFor="status">Status</Label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="available">Disponível</SelectItem>
-              <SelectItem value="reserved">Reservado</SelectItem>
-              <SelectItem value="sold">Vendido</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="synopsis">Sinopse</Label>
+          <textarea
+            id="synopsis"
+            value={synopsis}
+            onChange={(e) => setSynopsis(e.target.value)}
+            className="w-full min-h-[80px] p-2 border rounded-md"
+            placeholder="Descrição ou sinopse do livro"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="coverImage">Imagem de Capa</Label>
+          <div className="space-y-2">
+            <Input
+              id="coverImage"
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="cursor-pointer"
+            />
+            {coverImage && (
+              <div className="mt-2">
+                <img 
+                  src={coverImage} 
+                  alt="Capa do livro" 
+                  className="w-32 h-40 object-cover rounded border"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="location">Localização</Label>
-        <Input
-          id="location"
-          placeholder="Ex: Estante A, Prateleira 3"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
-      </div>
+      {/* Inventory Information Section */}
+      <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+        <h3 className="font-medium text-lg">Controle de Estoque</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="quantity">Quantidade</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="0"
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="available">Disponível</SelectItem>
+                <SelectItem value="reserved">Reservado</SelectItem>
+                <SelectItem value="sold">Vendido</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="estanteVirtual"
-          checked={sentToEstanteVirtual}
-          onChange={(e) => setSentToEstanteVirtual(e.target.checked)}
-          className="rounded border-gray-300"
-        />
-        <Label htmlFor="estanteVirtual">
-          Enviado para Estante Virtual
-        </Label>
+        <div>
+          <Label htmlFor="location">Localização</Label>
+          <Input
+            id="location"
+            placeholder="Ex: Estante A, Prateleira 3"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="estanteVirtual"
+            checked={sentToEstanteVirtual}
+            onChange={(e) => setSentToEstanteVirtual(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <Label htmlFor="estanteVirtual">
+            Enviado para Estante Virtual
+          </Label>
+        </div>
       </div>
 
       <div className="flex justify-end space-x-3 pt-4">

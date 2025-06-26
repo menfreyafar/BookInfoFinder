@@ -277,13 +277,23 @@ export class DatabaseStorage implements IStorage {
 
     if (maxPriceMatch) {
       const maxPrice = parseFloat(maxPriceMatch[1].replace(',', '.'));
-      whereConditions.push(lte(books.price, maxPrice));
+      whereConditions.push(
+        or(
+          lte(books.usedPrice, maxPrice),
+          lte(books.newPrice, maxPrice)
+        )
+      );
       hasPriceFilter = true;
     }
 
     if (minPriceMatch) {
       const minPrice = parseFloat(minPriceMatch[1].replace(',', '.'));
-      whereConditions.push(gte(books.price, minPrice));
+      whereConditions.push(
+        or(
+          gte(books.usedPrice, minPrice),
+          gte(books.newPrice, minPrice)
+        )
+      );
       hasPriceFilter = true;
     }
 
@@ -291,9 +301,15 @@ export class DatabaseStorage implements IStorage {
       const exactPrice = parseFloat(exactPriceMatch[1].replace(',', '.'));
       // Allow for small price variance (±0.50)
       whereConditions.push(
-        and(
-          gte(books.price, exactPrice - 0.5),
-          lte(books.price, exactPrice + 0.5)
+        or(
+          and(
+            gte(books.usedPrice, exactPrice - 0.5),
+            lte(books.usedPrice, exactPrice + 0.5)
+          ),
+          and(
+            gte(books.newPrice, exactPrice - 0.5),
+            lte(books.newPrice, exactPrice + 0.5)
+          )
         )
       );
       hasPriceFilter = true;
@@ -346,7 +362,7 @@ export class DatabaseStorage implements IStorage {
       .from(books)
       .leftJoin(inventory, eq(books.id, inventory.bookId))
       .where(whereConditions.length > 0 ? (whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions)) : undefined)
-      .orderBy(asc(books.price));
+      .orderBy(asc(books.title));
 
     return result.map(row => ({
       ...row.books,

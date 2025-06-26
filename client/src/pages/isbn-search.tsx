@@ -43,6 +43,7 @@ export default function ISBNSearch() {
   const [showBookForm, setShowBookForm] = useState(false);
   const [showImageAnalyzer, setShowImageAnalyzer] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<ImageAnalysisResult | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -144,6 +145,18 @@ export default function ISBNSearch() {
           synopsis: result.description
         }
       });
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setUploadedImage(result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 

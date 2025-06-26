@@ -57,6 +57,13 @@ O sistema agora suporta:
 - 2025-06-26: Implementado campo de busca inteligente no dashboard
 - 2025-06-26: Busca suporta critérios múltiplos: título, autor, nacionalidade, cores, idiomas
 - 2025-06-26: Adicionada busca por preços com filtros de valores (até X reais, acima de Y reais)
+- 2025-06-26: Corrigido erro "inventory id not found" no sistema de estoque
+- 2025-06-26: Implementado formulário completo de edição de livros no inventário
+- 2025-06-26: Formulário do inventário permite editar todos os dados do livro (título, autor, preços, etc.)
+- 2025-06-26: Corrigidos erros SQL na busca inteligente relacionados aos campos de preços
+- 2025-06-26: Adicionado campo de upload de imagem de capa no formulário de edição do inventário
+- 2025-06-26: Implementado campo de upload de imagem na busca por ISBN
+- 2025-06-26: Sistema de edição completo permite modificar todos os dados incluindo imagem de capa
 
 ## Próximos Passos
 - Sistema está pronto para uso e desenvolvimento adicional
