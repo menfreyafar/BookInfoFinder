@@ -12,7 +12,9 @@ import {
   BookOpen,
   AlertTriangle,
   MapPin,
-  Radar
+  Radar,
+  Layers,
+  Users
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -29,9 +31,11 @@ const navigation = [
   { name: "Cadastro", href: "/isbn-search", icon: Barcode },
   { name: "Catálogo", href: "/catalog", icon: FileText },
   { name: "Estoque", href: "/inventory", icon: Package },
+  { name: "Estantes", href: "/shelves", icon: Layers },
   { name: "Guarda", href: "/storage", icon: MapPin },
   { name: "Livros em Falta", href: "/missing-books", icon: AlertTriangle },
   { name: "Radar", href: "/radar", icon: Radar },
+  { name: "Clientes", href: "/customers", icon: Users },
   { name: "Ponto de Venda", href: "/pos", icon: ShoppingCart },
   { name: "Pedidos", href: "/orders", icon: Truck },
   { name: "Trocas", href: "/exchanges", icon: ArrowUpDown },
@@ -59,8 +63,8 @@ export default function Sidebar() {
   const brandSubtitle = settings.find(s => s.key === "brand_subtitle")?.value || "Sebo e Livraria";
 
   return (
-    <div className="w-64 bg-yellow-50 dark:bg-black-800 shadow-lg border-r border-orange-300 dark:border-orange-600 fixed h-full z-20">
-      <div className="p-4 border-b border-orange-300 dark:border-orange-600">
+    <div className="w-64 bg-yellow-50 dark:bg-black-800 shadow-lg border-r border-orange-300 dark:border-orange-600 fixed h-full z-20 flex flex-col">
+      <div className="p-4 border-b border-orange-300 dark:border-orange-600 flex-shrink-0">
         <div className="flex items-center space-x-0">
           {logoUrl && logoUrl.trim() && (
             <img 
@@ -79,7 +83,7 @@ export default function Sidebar() {
         </div>
       </div>
       
-      <nav className="p-4 space-y-2">
+      <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = location === item.href;
           return (

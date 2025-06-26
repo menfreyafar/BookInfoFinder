@@ -24,6 +24,7 @@ export default function POSModal({ open, onClose }: POSModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "pix">("pix");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { toast } = useToast();
@@ -120,15 +121,16 @@ export default function POSModal({ open, onClose }: POSModalProps) {
       const sale = {
         customerName: customerName || undefined,
         customerEmail: customerEmail || undefined,
-        totalAmount: calculateTotal().toFixed(2),
+        customerPhone: customerPhone || undefined,
+        totalAmount: parseFloat(calculateTotal().toFixed(2)),
         paymentMethod,
       };
 
       const items = cart.map(item => ({
         bookId: item.id,
         quantity: item.quantity,
-        unitPrice: item.price.toFixed(2),
-        totalPrice: (item.price * item.quantity).toFixed(2),
+        unitPrice: parseFloat(item.price.toFixed(2)),
+        totalPrice: parseFloat((item.price * item.quantity).toFixed(2)),
       }));
 
       await processSaleMutation.mutateAsync({ sale, items });
@@ -310,6 +312,16 @@ export default function POSModal({ open, onClose }: POSModalProps) {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Nome do cliente..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customerPhone">Telefone</Label>
+                  <Input
+                    id="customerPhone"
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="(11) 99999-9999"
                   />
                 </div>
                 <div>

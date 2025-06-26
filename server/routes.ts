@@ -274,7 +274,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sale, items } = req.body;
       
       const validatedSale = insertSaleSchema.parse(sale);
-      const validatedItems = items.map((item: any) => insertSaleItemSchema.parse(item));
+      // Remove saleId validation since it's added automatically in createSale
+      const validatedItems = items.map((item: any) => {
+        const { saleId, ...itemWithoutSaleId } = item;
+        return insertSaleItemSchema.parse(itemWithoutSaleId);
+      });
       
       const newSale = await storage.createSale(validatedSale, validatedItems);
       
@@ -2096,6 +2100,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking requests for book:", error);
       res.status(500).json({ error: "Erro ao verificar solicitações para o livro" });
+    }
+  });
+
+  // Shelves routes
+  app.get("/api/shelves", async (req, res) => {
+    try {
+      const allShelves = await db.select().from(shelves).where(eq(shelves.isActive, true)).orderBy(asc(shelves.name));
+      res.json(allShelves);
+    } catch (error) {
+      console.error("Error fetching shelves:", error);
+      res.status(500).json({ error: "Erro ao buscar estantes" });
+    }
+  });
+
+  app.post("/api/shelves", async (req, res) => {
+    try {
+      const shelfData = insertShelfSchema.parse(req.body);
+      const [newShelf] = await db.insert(shelves).values({
+        ...shelfData,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      res.status(201).json(newShelf);
+    } catch (error) {
+      console.error("Error creating shelf:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      res.status(500).json({ error: "Erro ao criar estante" });
+    }
+  });
+
+  app.put("/api/shelves/:id", async (req, res) => {
+    try {
+      const shelfId = parseInt(req.params.id);
+      const shelfData = insertShelfSchema.parse(req.body);
+      
+      const [updatedShelf] = await db.update(shelves)
+        .set({ ...shelfData, updatedAt: new Date() })
+        .where(eq(shelves.id, shelfId))
+        .returning();
+      
+      if (!updatedShelf) {
+        return res.status(404).json({ error: "Estante não encontrada" });
+      }
+      
+      res.json(updatedShelf);
+    } catch (error) {
+      console.error("Error updating shelf:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      res.status(500).json({ error: "Erro ao atualizar estante" });
+    }
+  });
+
+  app.delete("/api/shelves/:id", async (req, res) => {
+    try {
+      const shelfId = parseInt(req.params.id);
+      
+      // Check if there are books on this shelf
+      const booksOnShelf = await db.select().from(books)
+        .leftJoin(inventory, eq(books.id, inventory.bookId))
+        .where(eq(inventory.shelfId, shelfId));
+      
+      if (booksOnShelf.length > 0) {
+        return res.status(400).json({ 
+          error: `Não é possível remover esta estante pois ela contém ${booksOnShelf.length} livro(s). Mova os livros antes de remover a estante.` 
+        });
+      }
+      
+      // Soft delete by setting isActive to false
+      const [deletedShelf] = await db.update(shelves)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(shelves.id, shelfId))
+        .returning();
+      
+      if (!deletedShelf) {
+        return res.status(404).json({ error: "Estante não encontrada" });
+      }
+      
+      res.json({ message: "Estante removida com sucesso" });
+    } catch (error) {
+      console.error("Error deleting shelf:", error);
+      res.status(500).json({ error: "Erro ao remover estante" });
+    }
+  });
+
+  // Customers routes
+  app.get("/api/customers", async (req, res) => {
+    try {
+      const customers = await storage.getAllCustomers();
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({ error: "Erro ao buscar clientes" });
+    }
+  });
+
+  app.post("/api/customers", async (req, res) => {
+    try {
+      const customerData = insertCustomerSchema.parse(req.body);
+      const customer = await storage.createCustomer(customerData);
+      res.status(201).json(customer);
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Dados inválidos", details: error.errors });
+      }
+      res.status(500).json({ error: "Erro ao criar cliente" });
+    }
+  });
+
+  app.get("/api/customers/:id", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente não encontrado" });
+      }
+      res.json(customer);
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      res.status(500).json({ error: "Erro ao buscar cliente" });
     }
   });
 

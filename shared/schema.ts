@@ -44,9 +44,21 @@ export const sales = sqliteTable("sales", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   customerName: text("customer_name"),
   customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone"),
   totalAmount: real("total_amount").notNull(),
   paymentMethod: text("payment_method").notNull(), // cash, card, pix
   createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+export const customers = sqliteTable("customers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  address: text("address"),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
 export const settings = sqliteTable("settings", {
@@ -350,6 +362,7 @@ export const insertSaleSchema = createInsertSchema(sales).omit({
 
 export const insertSaleItemSchema = createInsertSchema(saleItems).omit({
   id: true,
+  saleId: true,
 });
 
 export const insertExchangeSchema = createInsertSchema(exchanges).omit({
@@ -410,6 +423,12 @@ export const insertBookTransferSchema = createInsertSchema(bookTransfers).omit({
   transferredAt: true,
 });
 
+export const insertCustomerSchema = createInsertSchema(customers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;
@@ -468,6 +487,12 @@ export type BookTransferWithDetails = BookTransfer & {
   book: Book;
   fromShelf: Shelf | null;
   toShelf: Shelf;
+};
+
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type CustomerWithSales = Customer & {
+  sales: Sale[];
 };
 
 export type ExchangeWithItems = Exchange & {

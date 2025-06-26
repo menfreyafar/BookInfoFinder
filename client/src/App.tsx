@@ -15,8 +15,10 @@ import Exchanges from "@/pages/exchanges";
 import PreCatalog from "@/pages/pre-catalog";
 import MissingBooks from "@/pages/missing-books";
 import Storage from "@/pages/storage";
+import ShelvesManagement from "@/pages/shelves-management";
 import Settings from "@/pages/settings";
 import CustomerRequestsPage from "@/pages/CustomerRequestsPage";
+import CustomersPage from "@/pages/customers";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -35,6 +37,8 @@ function Router() {
           <Route path="/pre-catalog" component={PreCatalog} />
           <Route path="/missing-books" component={MissingBooks} />
           <Route path="/radar" component={CustomerRequestsPage} />
+          <Route path="/customers" component={CustomersPage} />
+          <Route path="/shelves" component={ShelvesManagement} />
           <Route path="/storage" component={Storage} />
           <Route path="/export" component={Export} />
           <Route path="/settings" component={Settings} />

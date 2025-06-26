@@ -15,6 +15,7 @@ import {
   bookTransfers,
   missingBooks,
   shelves,
+  customers,
   type Book, 
   type InsertBook,
   type Inventory,
@@ -48,11 +49,14 @@ import {
   type BookTransferWithDetails,
   type MissingBook,
   type InsertMissingBook,
-  type Shelf
+  type Shelf,
+  type Customer,
+  type InsertCustomer,
+  type CustomerWithSales
 } from "@shared/schema";
 import type { Setting, InsertSetting } from "@shared/schema";
 import { db } from "../server/db";
-import { eq, desc, asc, and, or, like, lt, sql, gte, lte } from "drizzle-orm";
+import { eq, desc, asc, and, or, like, lt, sql, gte, lte, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // Books
@@ -1029,6 +1033,55 @@ export class DatabaseStorage implements IStorage {
     
     return db.select().from(customerRequests)
       .where(and(...conditions));
+  }
+
+  // Customer methods
+  async getAllCustomers(): Promise<CustomerWithSales[]> {
+    const allCustomers = await db.select().from(customers).orderBy(desc(customers.createdAt));
+    
+    const customersWithSales = await Promise.all(
+      allCustomers.map(async (customer) => {
+        const customerSales = await db.select().from(sales)
+          .where(or(
+            eq(sales.customerName, customer.name),
+            eq(sales.customerPhone, customer.phone || ''),
+            eq(sales.customerEmail, customer.email || '')
+          ));
+        
+        return {
+          ...customer,
+          sales: customerSales
+        };
+      })
+    );
+    
+    return customersWithSales;
+  }
+
+  async createCustomer(customerData: InsertCustomer): Promise<Customer> {
+    const [newCustomer] = await db.insert(customers).values({
+      ...customerData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return newCustomer;
+  }
+
+  async getCustomer(id: number): Promise<CustomerWithSales | undefined> {
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    if (!customer) return undefined;
+
+    const customerSales = await db.select().from(sales)
+      .where(or(
+        eq(sales.customerName, customer.name),
+        eq(sales.customerPhone, customer.phone || ''),
+        eq(sales.customerEmail, customer.email || '')
+      ));
+
+    return {
+      ...customer,
+      sales: customerSales
+    };
   }
 }
 
