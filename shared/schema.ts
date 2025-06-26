@@ -46,7 +46,9 @@ export const sales = sqliteTable("sales", {
   customerName: text("customer_name"),
   customerEmail: text("customer_email"),
   customerPhone: text("customer_phone"),
-  totalAmount: real("total_amount").notNull(),
+  subtotalAmount: real("subtotal_amount").notNull(), // valor antes do desconto
+  discountAmount: real("discount_amount").notNull().default(0), // valor do desconto
+  totalAmount: real("total_amount").notNull(), // valor final após desconto
   paymentMethod: text("payment_method").notNull(), // cash, card, pix
   createdAt: integer("created_at", { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });

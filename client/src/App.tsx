@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Sidebar from "@/components/sidebar";
 import Dashboard from "@/pages/dashboard";
 import ISBNSearch from "@/pages/isbn-search";
-import Catalog from "@/pages/catalog";
+import CatalogPage from "@/pages/catalog";
 import Inventory from "@/pages/inventory";
 import POS from "@/pages/pos";
 import Export from "@/pages/export";
@@ -30,7 +30,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/isbn-search" component={ISBNSearch} />
-          <Route path="/catalog" component={Catalog} />
+          <Route path="/catalog" component={CatalogPage} />
           <Route path="/inventory" component={Inventory} />
           <Route path="/pos" component={POS} />
           <Route path="/orders" component={Orders} />

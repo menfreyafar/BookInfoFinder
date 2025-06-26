@@ -71,6 +71,13 @@ O sistema agora suporta:
 - 2025-06-26: Migração completa do Replit Agent para ambiente Replit padrão
 - 2025-06-26: Corrigidos erros de sintaxe na função apiRequest do frontend
 - 2025-06-26: Sistema agora funciona completamente no ambiente Replit
+- 2025-06-26: Implementado sistema de desconto nas vendas
+- 2025-06-26: Adicionada validação para impedir vendas com valor zerado
+- 2025-06-26: Criada interface de vendas com campo de desconto em tempo real
+- 2025-06-26: Implementado catálogo PDF detalhado com filtros por categoria/tipo
+- 2025-06-26: Adicionada página de geração de catálogos com informações completas
+- 2025-06-26: Corrigida tabela estante_virtual_orders no banco de dados
+- 2025-06-26: Sistema de importação automática da Estante Virtual funcionando
 
 ## Próximos Passos
 - Sistema está pronto para uso e desenvolvimento adicional

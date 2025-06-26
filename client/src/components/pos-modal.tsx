@@ -25,6 +25,7 @@ export default function POSModal({ open, onClose }: POSModalProps) {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { toast } = useToast();
@@ -101,8 +102,13 @@ export default function POSModal({ open, onClose }: POSModalProps) {
     setCart(cart.filter(item => item.id !== id));
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    return Math.max(0, subtotal - discountAmount);
   };
 
   const processSale = async () => {
@@ -115,6 +121,16 @@ export default function POSModal({ open, onClose }: POSModalProps) {
       return;
     }
 
+    const finalTotal = calculateTotal();
+    if (finalTotal <= 0) {
+      toast({
+        title: "Erro",
+        description: "O valor final da venda deve ser maior que zero",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
@@ -122,7 +138,9 @@ export default function POSModal({ open, onClose }: POSModalProps) {
         customerName: customerName || undefined,
         customerEmail: customerEmail || undefined,
         customerPhone: customerPhone || undefined,
-        totalAmount: parseFloat(calculateTotal().toFixed(2)),
+        subtotalAmount: parseFloat(calculateSubtotal().toFixed(2)),
+        discountAmount: parseFloat(discountAmount.toFixed(2)),
+        totalAmount: parseFloat(finalTotal.toFixed(2)),
         paymentMethod,
       };
 
@@ -134,6 +152,10 @@ export default function POSModal({ open, onClose }: POSModalProps) {
       }));
 
       await processSaleMutation.mutateAsync({ sale, items });
+      
+      // Reset discount after successful sale
+      setDiscountAmount(0);
+      setCustomerPhone("");
     } finally {
       setIsProcessing(false);
     }
@@ -261,17 +283,40 @@ export default function POSModal({ open, onClose }: POSModalProps) {
                 <div className="space-y-3">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal ({cart.length} itens)</span>
-                    <span>R$ {calculateTotal().toFixed(2)}</span>
+                    <span>R$ {calculateSubtotal().toFixed(2)}</span>
                   </div>
+                  
+                  {/* Discount Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="discount">Desconto (R$)</Label>
+                    <Input
+                      id="discount"
+                      type="number"
+                      min="0"
+                      max={calculateSubtotal()}
+                      step="0.01"
+                      value={discountAmount}
+                      onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                      placeholder="0,00"
+                    />
+                  </div>
+                  
                   <div className="flex justify-between text-gray-600">
-                    <span>Desconto</span>
-                    <span>R$ 0,00</span>
+                    <span>Desconto aplicado</span>
+                    <span className="text-red-600">- R$ {discountAmount.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
-                    <span>R$ {calculateTotal().toFixed(2)}</span>
+                    <span className={calculateTotal() <= 0 ? "text-red-600" : "text-green-600"}>
+                      R$ {calculateTotal().toFixed(2)}
+                    </span>
                   </div>
+                  {calculateTotal() <= 0 && (
+                    <p className="text-sm text-red-600">
+                      Valor final deve ser maior que zero
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -276,7 +276,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sale, items } = req.body;
       
-      const validatedSale = insertSaleSchema.parse(sale);
+      // Validation: Check if total amount is greater than zero
+      if (!sale.totalAmount || sale.totalAmount <= 0) {
+        return res.status(400).json({ 
+          error: "Valor total da venda deve ser maior que zero" 
+        });
+      }
+
+      // Validation: Check if items exist and have valid quantities
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ 
+          error: "Pelo menos um item deve ser incluído na venda" 
+        });
+      }
+
+      // Calculate subtotal from items
+      const subtotal = items.reduce((sum: number, item: any) => sum + (item.totalPrice || 0), 0);
+      const discountAmount = sale.discountAmount || 0;
+      const finalTotal = subtotal - discountAmount;
+
+      // Validation: Final total must be positive
+      if (finalTotal <= 0) {
+        return res.status(400).json({ 
+          error: "Valor final da venda deve ser maior que zero após aplicar desconto" 
+        });
+      }
+
+      // Prepare sale data with discount information
+      const saleWithDiscount = {
+        ...sale,
+        subtotalAmount: subtotal,
+        discountAmount: discountAmount,
+        totalAmount: finalTotal
+      };
+      
+      const validatedSale = insertSaleSchema.parse(saleWithDiscount);
       // Remove saleId validation since it's added automatically in createSale
       const validatedItems = items.map((item: any) => {
         const { saleId, ...itemWithoutSaleId } = item;
@@ -480,73 +514,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.fontSize(12).text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
       doc.moveDown(2);
 
-      // Products grid (2 columns)
+      // Products grid (1 product per page for detailed catalog)
       const pageWidth = doc.page.width - 80; // 40 margin each side
-      const colWidth = pageWidth / 2 - 10; // 10px gap between columns
-      let currentY = doc.y;
-      let currentCol = 0;
-
+      
       books.forEach((book, index) => {
-        const x = currentCol === 0 ? 40 : 40 + colWidth + 20;
-        
-        // Check if we need a new page
-        if (currentY > doc.page.height - 200) {
+        if (index > 0) {
           doc.addPage();
-          currentY = 40;
         }
-
-        doc.y = currentY;
-
-        // Product card background
-        doc.rect(x, currentY, colWidth, 150).stroke();
         
-        // Product details
-        doc.fontSize(14).font('Helvetica-Bold').text(book.title, x + 10, currentY + 10, {
-          width: colWidth - 20,
-          ellipsis: true
-        });
-        
-        doc.fontSize(11).font('Helvetica').text(`Por: ${book.author}`, x + 10, currentY + 30, {
-          width: colWidth - 20,
-          ellipsis: true
-        });
+        const startY = 80;
+        let currentY = startY;
 
-        // Price
+        // Product title
+        doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000')
+           .text(book.title, 40, currentY, {
+             width: pageWidth,
+             align: 'center'
+           });
+        currentY += 40;
+
+        // Author
+        doc.fontSize(14).font('Helvetica')
+           .text(`Por: ${book.author}`, 40, currentY, {
+             width: pageWidth,
+             align: 'center'
+           });
+        currentY += 30;
+
+        // Price - prominent display
         const price = book.usedPrice || book.newPrice || 0;
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('#dc2626')
-           .text(`R$ ${Number(price).toFixed(2)}`, x + 10, currentY + 50);
+        doc.fontSize(24).font('Helvetica-Bold').fillColor('#dc2626')
+           .text(`R$ ${Number(price).toFixed(2)}`, 40, currentY, {
+             width: pageWidth,
+             align: 'center'
+           });
+        currentY += 50;
 
-        // Additional details
-        doc.fontSize(9).font('Helvetica').fillColor('#666666');
-        if (book.category) {
-          doc.text(`Categoria: ${book.category}`, x + 10, currentY + 75);
-        }
-        if (book.condition) {
-          doc.text(`Condição: ${book.condition}`, x + 10, currentY + 90);
-        }
+        // Product details in organized sections
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000')
+           .text('DETALHES DO PRODUTO', 40, currentY);
+        currentY += 20;
+
+        doc.fontSize(10).font('Helvetica').fillColor('#333333');
+        
         if (book.isbn) {
-          doc.text(`ISBN: ${book.isbn}`, x + 10, currentY + 105);
+          doc.text(`ISBN: ${book.isbn}`, 40, currentY);
+          currentY += 15;
         }
+        
+        if (book.category) {
+          doc.text(`Categoria: ${book.category}`, 40, currentY);
+          currentY += 15;
+        }
+        
+        if (book.condition) {
+          doc.text(`Condição: ${book.condition}`, 40, currentY);
+          currentY += 15;
+        }
+        
+        if (book.publisher) {
+          doc.text(`Editora: ${book.publisher}`, 40, currentY);
+          currentY += 15;
+        }
+        
+        if (book.publishYear) {
+          doc.text(`Ano de Publicação: ${book.publishYear}`, 40, currentY);
+          currentY += 15;
+        }
+        
         if (book.shelf) {
-          doc.text(`Estante: ${book.shelf}`, x + 10, currentY + 120);
+          doc.text(`Localização: Estante ${book.shelf}`, 40, currentY);
+          currentY += 15;
+        }
+        
+        if (book.productType) {
+          doc.text(`Tipo: ${book.productType === 'book' ? 'Livro' : book.productType === 'vinyl' ? 'Vinil' : 'DVD'}`, 40, currentY);
+          currentY += 15;
         }
 
-        // Synopsis if available
-        if (book.synopsis) {
-          doc.fontSize(8).text(book.synopsis.substring(0, 100) + '...', x + 10, currentY + 135, {
-            width: colWidth - 20,
-            height: 10
-          });
+        currentY += 20;
+
+        // Synopsis section
+        if (book.synopsis && book.synopsis.trim()) {
+          doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000')
+             .text('SINOPSE', 40, currentY);
+          currentY += 20;
+          
+          doc.fontSize(10).font('Helvetica').fillColor('#333333')
+             .text(book.synopsis, 40, currentY, {
+               width: pageWidth,
+               align: 'justify',
+               lineGap: 3
+             });
         }
 
-        // Reset color
-        doc.fillColor('#000000');
-
-        // Move to next position
-        currentCol = currentCol === 0 ? 1 : 0;
-        if (currentCol === 0) {
-          currentY += 170; // Move to next row
-        }
+        // Footer with product info
+        doc.fontSize(8).fillColor('#999999').text(
+          `Produto #${book.id} | ${book.productType === 'book' ? 'Livro' : book.productType === 'vinyl' ? 'Vinil' : 'DVD'}`,
+          40,
+          doc.page.height - 50,
+          { align: 'left' }
+        );
       });
 
       // Footer

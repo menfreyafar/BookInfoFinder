@@ -1,166 +1,84 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Search, 
-  Book, 
-  Edit, 
-  Trash2, 
-  Plus,
-  Filter,
-  SortAsc,
-  SortDesc,
-  Library,
-  Globe
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { FileText, Download, Filter, BookOpen, Disc, Film } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import BookForm from "@/components/book-form";
-import EstanteVirtualSync from "@/components/estante-virtual-sync";
-import { BookWithInventory } from "@shared/schema";
+import TopBar from "@/components/topbar";
 
-function TopBar() {
-  return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Catálogo</h2>
-          <p className="text-gray-600">Gerencie todos os livros do seu acervo</p>
-        </div>
-        <Button className="bg-primary-500 hover:bg-primary-600">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Livro
-        </Button>
-      </div>
-    </header>
-  );
-}
-
-export default function Catalog() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"title" | "author" | "createdAt">("createdAt");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedBook, setSelectedBook] = useState<BookWithInventory | null>(null);
-  const [showBookForm, setShowBookForm] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [bookToDelete, setBookToDelete] = useState<BookWithInventory | null>(null);
-
+export default function CatalogPage() {
+  const [productType, setProductType] = useState("all");
+  const [category, setCategory] = useState("");
+  const [shelf, setShelf] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: books, isLoading } = useQuery({
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/categories"],
+  });
+
+  const { data: shelves = [] } = useQuery({
+    queryKey: ["/api/shelves"],
+  });
+
+  const { data: books = [] } = useQuery({
     queryKey: ["/api/books"],
-    queryFn: () => fetch("/api/books").then(res => res.json()) as Promise<BookWithInventory[]>,
   });
 
-  const { data: searchResults } = useQuery({
-    queryKey: ["/api/books/search", searchQuery],
-    enabled: searchQuery.length > 2,
-    queryFn: () => fetch(`/api/books/search?q=${encodeURIComponent(searchQuery)}`)
-      .then(res => res.json()) as Promise<BookWithInventory[]>,
-  });
+  const productTypes = [
+    { value: "all", label: "Todos os produtos", icon: BookOpen },
+    { value: "book", label: "Livros", icon: BookOpen },
+    { value: "vinyl", label: "Vinis", icon: Disc },
+    { value: "dvd", label: "DVDs", icon: Film },
+  ];
 
-  const deleteMutation = useMutation({
-    mutationFn: async (bookId: number) => {
-      await apiRequest("DELETE", `/api/books/${bookId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/books"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+  // Count products by type
+  const getProductCount = (type: string) => {
+    if (type === "all") return books.length;
+    return books.filter((book: any) => book.productType === type).length;
+  };
+
+  const generateCatalog = async () => {
+    setIsGenerating(true);
+    
+    try {
+      const params = new URLSearchParams();
+      if (productType !== "all") params.append("productType", productType);
+      if (category) params.append("category", category);
+      if (shelf) params.append("shelf", shelf);
+
+      const response = await fetch(`/api/export/catalog-pdf?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error("Erro ao gerar catálogo");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `catalogo-${productType}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
       toast({
-        title: "Livro Removido",
-        description: "Livro removido com sucesso do catálogo",
+        title: "Catálogo Gerado",
+        description: "O catálogo PDF foi gerado e baixado com sucesso!",
       });
-      setShowDeleteDialog(false);
-      setBookToDelete(null);
-    },
-    onError: (error) => {
+    } catch (error) {
       toast({
         title: "Erro",
-        description: "Erro ao remover livro: " + error.message,
+        description: "Erro ao gerar catálogo PDF",
         variant: "destructive",
       });
-    },
-  });
-
-  const displayBooks = searchQuery.length > 2 ? searchResults : books;
-
-  const filteredBooks = displayBooks?.filter(book => {
-    if (selectedCategory && selectedCategory !== "all" && book.category !== selectedCategory) {
-      return false;
-    }
-    return true;
-  });
-
-  const sortedBooks = filteredBooks?.sort((a, b) => {
-    let aValue, bValue;
-    
-    switch (sortBy) {
-      case "title":
-        aValue = a.title.toLowerCase();
-        bValue = b.title.toLowerCase();
-        break;
-      case "author":
-        aValue = a.author.toLowerCase();
-        bValue = b.author.toLowerCase();
-        break;
-      case "createdAt":
-        aValue = new Date(a.createdAt || 0).getTime();
-        bValue = new Date(b.createdAt || 0).getTime();
-        break;
-      default:
-        return 0;
-    }
-
-    if (sortOrder === "asc") {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-    }
-  });
-
-  const categories = Array.from(new Set(books?.map(book => book.category).filter(Boolean)));
-
-  const getStatusBadge = (status: string, quantity: number) => {
-    if (quantity === 0) {
-      return <Badge variant="destructive">Esgotado</Badge>;
-    }
-    
-    switch (status) {
-      case 'available':
-        return <Badge className="bg-green-100 text-green-800">Disponível ({quantity})</Badge>;
-      case 'reserved':
-        return <Badge className="bg-yellow-100 text-yellow-800">Reservado ({quantity})</Badge>;
-      case 'sold':
-        return <Badge className="bg-gray-100 text-gray-800">Vendido</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  const formatCurrency = (value: string | undefined) => {
-    if (!value) return "N/A";
-    const num = parseFloat(value);
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(num);
-  };
-
-  const handleDelete = (book: BookWithInventory) => {
-    setBookToDelete(book);
-    setShowDeleteDialog(true);
-  };
-
-  const confirmDelete = () => {
-    if (bookToDelete) {
-      deleteMutation.mutate(bookToDelete.id);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -169,242 +87,142 @@ export default function Catalog() {
       <TopBar />
       
       <main className="p-6">
-        {/* Filters and Search */}
-        <div className="mb-6 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar por título, autor ou ISBN..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-48">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as categorias</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
-                const [field, order] = value.split('-') as [typeof sortBy, typeof sortOrder];
-                setSortBy(field);
-                setSortOrder(order);
-              }}>
-                <SelectTrigger className="w-48">
-                  {sortOrder === "asc" ? <SortAsc className="w-4 h-4 mr-2" /> : <SortDesc className="w-4 h-4 mr-2" />}
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="createdAt-desc">Mais recentes</SelectItem>
-                  <SelectItem value="createdAt-asc">Mais antigos</SelectItem>
-                  <SelectItem value="title-asc">Título A-Z</SelectItem>
-                  <SelectItem value="title-desc">Título Z-A</SelectItem>
-                  <SelectItem value="author-asc">Autor A-Z</SelectItem>
-                  <SelectItem value="author-desc">Autor Z-A</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Catálogo de Produtos
+            </h1>
             <p className="text-gray-600">
-              {isLoading ? "Carregando..." : `${sortedBooks?.length || 0} livros encontrados`}
+              Gere catálogos PDF detalhados com informações completas dos produtos
             </p>
           </div>
-        </div>
 
-        {/* Books Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className="w-full h-48 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </CardContent>
-              </Card>
-            ))}
+          {/* Product Type Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {productTypes.map((type) => {
+              const Icon = type.icon;
+              const count = getProductCount(type.value);
+              
+              return (
+                <Card 
+                  key={type.value}
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    productType === type.value ? 'ring-2 ring-primary-500 bg-primary-50' : ''
+                  }`}
+                  onClick={() => setProductType(type.value)}
+                >
+                  <CardContent className="p-4 text-center">
+                    <Icon className="w-8 h-8 mx-auto mb-2 text-primary-600" />
+                    <h3 className="font-semibold text-gray-900">{type.label}</h3>
+                    <p className="text-sm text-gray-600">{count} produtos</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        ) : sortedBooks?.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Library className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {searchQuery ? "Nenhum livro encontrado" : "Catálogo vazio"}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {searchQuery 
-                  ? "Tente ajustar sua busca ou filtros"
-                  : "Comece adicionando livros ao seu catálogo"
-                }
-              </p>
-              {!searchQuery && (
-                <Button onClick={() => setShowBookForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Primeiro Livro
-                </Button>
-              )}
+
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Filter className="w-5 h-5" />
+                <span>Filtros Avançados</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Category Filter */}
+                <div className="space-y-2">
+                  <Label>Categoria</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todas as categorias" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todas as categorias</SelectItem>
+                      {categories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Shelf Filter - Only for books */}
+                {(productType === "all" || productType === "book") && (
+                  <div className="space-y-2">
+                    <Label>Estante</Label>
+                    <Select value={shelf} onValueChange={setShelf}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas as estantes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todas as estantes</SelectItem>
+                        {shelves.map((shelfItem: any) => (
+                          <SelectItem key={shelfItem.id} value={shelfItem.name}>
+                            {shelfItem.name} - {shelfItem.description || 'Sem descrição'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {sortedBooks?.map(book => (
-              <Card key={book.id} className="group hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
-                  {/* Book Cover */}
-                  <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
-                    {book.coverImage ? (
-                      <img 
-                        src={book.coverImage} 
-                        alt={book.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Book className="w-12 h-12 text-gray-400" />
-                    )}
-                  </div>
 
-                  {/* Book Info */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-900 line-clamp-2 h-12">
-                      {book.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm">{book.author}</p>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-primary-600 font-semibold">
-                        {formatCurrency(book.usedPrice || book.newPrice)}
-                      </span>
-                      {getStatusBadge(
-                        book.inventory?.status || 'available', 
-                        book.inventory?.quantity || 0
-                      )}
-                    </div>
-
-                    {book.category && (
-                      <Badge variant="outline" className="text-xs">
-                        {book.category}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Estante Virtual Status */}
-                  {book.inventory?.sentToEstanteVirtual && (
-                    <div className="flex items-center gap-1 text-xs text-blue-600 mb-2">
-                      <Globe className="w-3 h-3" />
-                      <span>Na Estante Virtual</span>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="mt-4 space-y-2">
-                    <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => {
-                          setSelectedBook(book);
-                          setShowBookForm(true);
-                        }}
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Editar
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => handleDelete(book)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    
-                    {/* Estante Virtual Sync Controls */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <EstanteVirtualSync 
-                        bookId={book.id}
-                        bookTitle={book.title}
-                        isInEstanteVirtual={book.inventory?.sentToEstanteVirtual || false}
-                        onSyncComplete={() => {
-                          // Refresh book data after sync
-                          queryClient.invalidateQueries({ queryKey: ['/api/books'] });
-                        }}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Book Form Dialog */}
-        <Dialog open={showBookForm} onOpenChange={setShowBookForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedBook ? "Editar Livro" : "Novo Livro"}
-              </DialogTitle>
-            </DialogHeader>
-            <BookForm 
-              book={selectedBook || undefined}
-              onClose={() => {
-                setShowBookForm(false);
-                setSelectedBook(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirmar Exclusão</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p>
-                Tem certeza que deseja remover o livro "{bookToDelete?.title}" do catálogo?
-              </p>
-              <p className="text-sm text-gray-600">
-                Esta ação não pode ser desfeita.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowDeleteDialog(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  variant="destructive"
-                  onClick={confirmDelete}
-                  disabled={deleteMutation.isPending}
-                >
-                  {deleteMutation.isPending ? "Removendo..." : "Remover"}
-                </Button>
+          {/* Preview Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Pré-visualização do Catálogo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">O catálogo incluirá:</h4>
+                <ul className="space-y-1 text-gray-600">
+                  <li>• Título completo e autor</li>
+                  <li>• Foto da capa (quando disponível)</li>
+                  <li>• Sinopse detalhada</li>
+                  <li>• Preço atualizado</li>
+                  <li>• Categoria e condição</li>
+                  <li>• Localização na estante</li>
+                  <li>• ISBN e editora</li>
+                  <li>• Ano de publicação</li>
+                </ul>
+                
+                <div className="mt-4 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                  <p className="text-sm text-blue-800">
+                    <strong>Formato:</strong> Cada produto ocupará uma página completa para máximo detalhamento
+                  </p>
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </CardContent>
+          </Card>
+
+          {/* Generate Button */}
+          <div className="text-center">
+            <Button
+              onClick={generateCatalog}
+              disabled={isGenerating}
+              size="lg"
+              className="bg-primary-600 hover:bg-primary-700 px-8"
+            >
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Gerando Catálogo...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-5 h-5 mr-2" />
+                  Gerar Catálogo PDF
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </main>
     </>
   );
