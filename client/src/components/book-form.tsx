@@ -24,6 +24,7 @@ const bookFormSchema = z.object({
   category: z.string().optional(),
   productType: z.string().default("book"),
   synopsis: z.string().optional(),
+  coverImage: z.string().optional(),
   weight: z.number().optional(),
   usedPrice: z.string().optional(),
   newPrice: z.string().optional(),
@@ -43,8 +44,22 @@ interface BookFormProps {
 
 export default function BookForm({ book, onClose }: BookFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coverImage, setCoverImage] = useState(book?.coverImage || "");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setCoverImage(result);
+        form.setValue("coverImage", result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Load available shelves
   const { data: shelves = [] } = useQuery<Shelf[]>({
@@ -68,9 +83,10 @@ export default function BookForm({ book, onClose }: BookFormProps) {
       category: book?.category || "",
       productType: book?.productType || "book",
       synopsis: book?.synopsis || "",
+      coverImage: book?.coverImage || "",
       weight: book?.weight || undefined,
-      usedPrice: book?.usedPrice || "",
-      newPrice: book?.newPrice || "",
+      usedPrice: book?.usedPrice?.toString() || "",
+      newPrice: book?.newPrice?.toString() || "",
       condition: book?.condition || "Usado",
       shelf: book?.shelf || "",
       quantity: book?.inventory?.quantity || 0,
@@ -336,6 +352,28 @@ export default function BookForm({ book, onClose }: BookFormProps) {
               placeholder="Sinopse do livro..."
               rows={4}
             />
+          </div>
+
+          <div>
+            <Label htmlFor="coverImage">Imagem de Capa</Label>
+            <div className="space-y-2">
+              <Input
+                id="coverImage"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="cursor-pointer"
+              />
+              {coverImage && (
+                <div className="mt-2">
+                  <img 
+                    src={coverImage} 
+                    alt="Capa do livro" 
+                    className="w-32 h-40 object-cover rounded border"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
