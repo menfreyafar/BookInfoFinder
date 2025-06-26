@@ -43,9 +43,7 @@ export default function EstanteVirtualSync({
   // Upload individual book
   const uploadBookMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest(`/api/estante-virtual/upload-book/${id}`, {
-        method: 'POST'
-      });
+      const response = await apiRequest('POST', `/api/estante-virtual/upload-book/${id}`);
       return response.json();
     },
     onSuccess: (data) => {
@@ -76,9 +74,7 @@ export default function EstanteVirtualSync({
   // Import catalog
   const importCatalogMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('/api/estante-virtual/import-catalog', {
-        method: 'POST'
-      });
+      const response = await apiRequest('POST', '/api/estante-virtual/import-catalog');
       return response.json();
     },
     onSuccess: (data) => {
@@ -107,13 +103,7 @@ export default function EstanteVirtualSync({
   // Sync inventory
   const syncInventoryMutation = useMutation({
     mutationFn: async (data: { bookId?: number }) => {
-      const response = await apiRequest('/api/estante-virtual/sync-inventory', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiRequest('POST', '/api/estante-virtual/sync-inventory', data);
       return response.json();
     },
     onSuccess: (data) => {
@@ -142,9 +132,7 @@ export default function EstanteVirtualSync({
   // Remove from Estante Virtual
   const removeBookMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest(`/api/estante-virtual/book/${id}`, {
-        method: 'DELETE'
-      });
+      const response = await apiRequest('DELETE', `/api/estante-virtual/book/${id}`);
       return response.json();
     },
     onSuccess: (data) => {

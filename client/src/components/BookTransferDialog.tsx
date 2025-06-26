@@ -33,10 +33,7 @@ export default function BookTransferDialog({ book, children }: BookTransferDialo
   // Transfer mutation
   const transferMutation = useMutation({
     mutationFn: async (data: { to_shelf_id: number; reason?: string; transferred_by?: string }) => {
-      return apiRequest(`/api/books/${book.id}/transfer`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", `/api/books/${book.id}/transfer`, data);
     },
     onSuccess: () => {
       toast({
@@ -76,7 +73,7 @@ export default function BookTransferDialog({ book, children }: BookTransferDialo
     });
   };
 
-  const currentShelf = shelves.find(s => s.id === book.inventory?.shelf_id);
+  const currentShelf = shelves.find(s => s.name === book.shelf);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -111,7 +108,7 @@ export default function BookTransferDialog({ book, children }: BookTransferDialo
               </SelectTrigger>
               <SelectContent>
                 {shelves
-                  .filter(shelf => shelf.id !== book.inventory?.shelf_id)
+                  .filter(shelf => shelf.name !== book.shelf)
                   .map((shelf) => (
                     <SelectItem key={shelf.id} value={shelf.id.toString()}>
                       {shelf.name} - {shelf.description}

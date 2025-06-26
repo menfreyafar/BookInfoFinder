@@ -38,10 +38,16 @@ export default function PhotoBookForm({ onClose, onSuccess }: PhotoBookFormProps
       const formData = new FormData();
       formData.append('image', imageFile);
       
-      const response = await apiRequest('/api/books/register-by-photo', {
+      const response = await fetch('/api/books/register-by-photo', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
+      
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`${response.status}: ${text}`);
+      }
       
       return response.json();
     },
@@ -77,10 +83,16 @@ export default function PhotoBookForm({ onClose, onSuccess }: PhotoBookFormProps
       const formData = new FormData();
       formData.append('image', imageFile);
       
-      const response = await apiRequest('/api/analyze-image', {
+      const response = await fetch('/api/analyze-image', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
+      
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`${response.status}: ${text}`);
+      }
       
       return response.json();
     },
