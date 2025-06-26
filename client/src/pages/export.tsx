@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { BookWithInventory, SaleWithItems } from "@shared/schema";
+import EstanteVirtualSync from "@/components/estante-virtual-sync";
 import { SalesReport } from "@/lib/types";
 
 function TopBar() {
