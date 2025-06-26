@@ -65,6 +65,10 @@ O sistema agora suporta:
 - 2025-06-26: Implementado campo de upload de imagem na busca por ISBN
 - 2025-06-26: Sistema de edição completo permite modificar todos os dados incluindo imagem de capa
 - 2025-06-26: Migração completa do Replit Agent para ambiente Replit padrão
+- 2025-06-26: Corrigido erro de validação JSON na criação de livros (preços string/number)
+- 2025-06-26: Ajustada função apiRequest para nova assinatura de parâmetros
+- 2025-06-26: Corrigidos erros de parsing nos formulários de criação de livros
+- 2025-06-26: Migração completa do Replit Agent para ambiente Replit padrão
 - 2025-06-26: Corrigidos erros de sintaxe na função apiRequest do frontend
 - 2025-06-26: Sistema agora funciona completamente no ambiente Replit
 

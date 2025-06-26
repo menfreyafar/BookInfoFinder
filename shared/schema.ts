@@ -320,6 +320,15 @@ export const insertBookSchema = createInsertSchema(books).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  usedPrice: z.union([z.string(), z.number()]).optional().transform((val) => {
+    if (val === undefined || val === null || val === "") return undefined;
+    return typeof val === "string" ? parseFloat(val) : val;
+  }),
+  newPrice: z.union([z.string(), z.number()]).optional().transform((val) => {
+    if (val === undefined || val === null || val === "") return undefined;
+    return typeof val === "string" ? parseFloat(val) : val;
+  }),
 });
 
 export const insertSettingsSchema = createInsertSchema(settings).omit({
